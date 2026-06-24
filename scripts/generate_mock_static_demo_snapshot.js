@@ -33,6 +33,10 @@ function round(value, digits = 1) {
   return Math.round(value * factor) / factor;
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function sum(rows, field) {
   return rows.reduce((total, row) => total + (Number(row[field]) || 0), 0);
 }
@@ -57,13 +61,31 @@ function makeChineseName(index) {
   return `${surname}${first}${second}`;
 }
 
+function makeEmployeeProfile(index) {
+  return {
+    profileLabel: ["稳定高效", "技能提升", "加班支援", "响应偏慢", "改善活跃"][index % 5],
+    piBaseRate: 0.758 + ((index * 17) % 82) / 1000,
+    attendanceBase: 142 + ((index * 19) % 34),
+    productivityFactor: 0.43 + ((index * 31) % 46) / 100,
+    overtimeBias: (index * 7) % 6,
+    leaveBias: (index * 13) % 5,
+    mttrBase: 38 + ((index * 29) % 62),
+    responseBias: (index * 11) % 9,
+    improvementBias: (index * 5) % 4,
+    riskBias: (index * 7) % 5,
+  };
+}
+
 function certificateStatus(employeeIndex, certIndex) {
-  const state = (employeeIndex * 2 + certIndex) % 5;
-  const hasCertificate = state !== 4;
+  const skillBand = (employeeIndex * 17) % 100;
+  const missingThreshold = skillBand < 25 ? 4 : skillBand > 75 ? 1 : 2;
+  const state = (employeeIndex * 7 + certIndex * 5 + Math.floor(employeeIndex / 10)) % 12;
+  const hasCertificate = state >= missingThreshold;
+  const expiryState = (employeeIndex * 3 + certIndex * 4) % 10;
   return {
     hasCertificate,
-    status: !hasCertificate ? "missing" : state === 3 ? "expired" : state === 2 ? "expiring" : "valid",
-    stateLabel: !hasCertificate ? "未登记" : state === 3 ? "已过期" : state === 2 ? "即将到期" : "有效",
+    status: !hasCertificate ? "missing" : expiryState === 0 ? "expired" : expiryState <= 2 ? "expiring" : "valid",
+    stateLabel: !hasCertificate ? "未登记" : expiryState === 0 ? "已过期" : expiryState <= 2 ? "即将到期" : "有效",
   };
 }
 
@@ -82,6 +104,7 @@ function countCertificateGaps(employeeCount) {
 function makeEmployee(index) {
   const department = departments[index % departments.length];
   const no = `MOC-${String(index + 1).padStart(3, "0")}`;
+  const profile = makeEmployeeProfile(index);
   return {
     employeeKey: `MOCK::${department}::${String(index + 1).padStart(3, "0")}`,
     employeeNo: no,
@@ -94,8 +117,18 @@ function makeEmployee(index) {
     positionTitle: index % 3 === 0 ? "高级维修技师" : "维修技师",
     jobTitle: "设备维修技师",
     role: "设备维修",
-    piTargetRate: 0.78 + (index % 4) * 0.02,
+    piTargetRate: round(clamp(profile.piBaseRate + 0.015, 0.76, 0.85), 3),
     piTargetLabel: `${department} PI目标`,
+    profileLabel: profile.profileLabel,
+    piBaseRate: profile.piBaseRate,
+    attendanceBase: profile.attendanceBase,
+    productivityFactor: profile.productivityFactor,
+    overtimeBias: profile.overtimeBias,
+    leaveBias: profile.leaveBias,
+    mttrBase: profile.mttrBase,
+    responseBias: profile.responseBias,
+    improvementBias: profile.improvementBias,
+    riskBias: profile.riskBias,
   };
 }
 
@@ -106,30 +139,38 @@ const improvementRecords = [];
 
 employeesBase.forEach((employee, employeeIndex) => {
   months.forEach((month, monthIndex) => {
-    const season = Math.sin((monthIndex + employeeIndex) / 3);
-    const attendanceHours = round(150 + ((employeeIndex * 7 + monthIndex * 5) % 36) + season * 4, 1);
-    const piRate = 0.755 + ((employeeIndex * 7 + monthIndex * 3) % 10) / 100;
+    const season = Math.sin((monthIndex + employeeIndex * 0.7) / 3.5);
+    const monthlyLoad = ((employeeIndex * 5 + monthIndex * 7) % 13) - 6;
+    const attendanceHours = round(employee.attendanceBase + monthlyLoad + season * (2 + employee.riskBias * 0.6) - employee.leaveBias * 0.7, 1);
+    const piRate = round(clamp(
+      employee.piBaseRate
+        + season * 0.006
+        + (((employeeIndex * 11 + monthIndex * 7) % 9) - 4) / 1000,
+      0.752,
+      0.848
+    ), 4);
     const piHoursTarget = round(attendanceHours * piRate, 1);
     const transferHours = round(piHoursTarget * (0.07 + ((employeeIndex + monthIndex) % 4) * 0.01), 1);
     const pm01Hours = round(piHoursTarget * (0.54 + ((employeeIndex + monthIndex) % 5) * 0.015), 1);
     const pm03Hours = round(Math.max(0, piHoursTarget - pm01Hours - transferHours), 1);
     const piHours = pm01Hours + pm03Hours + transferHours;
-    const repairHours = round(piHours * (0.88 + ((employeeIndex + monthIndex) % 5) * 0.018), 1);
-    const orderCount = Math.round(62 + employeeIndex * 5 + monthIndex * 1.5 + season * 8);
-    const overtime15Hours = round(((employeeIndex + monthIndex) % 5) * 2.5, 1);
-    const overtime20Hours = round(((employeeIndex * 2 + monthIndex) % 4) * 1.5, 1);
-    const overtime30Hours = round(((employeeIndex + monthIndex) % 11 === 0) ? 6 : 0, 1);
-    const annualLeaveHours = round(((monthIndex + employeeIndex) % 9 === 0) ? 8 : 0, 1);
-    const sickLeaveHours = round(((monthIndex + employeeIndex) % 13 === 0) ? 4 : 0, 1);
+    const repairHours = round(piHours * (0.84 + employee.riskBias * 0.018 + ((employeeIndex + monthIndex) % 5) * 0.012), 1);
+    const orderCount = Math.round(attendanceHours * employee.productivityFactor + piRate * 48 + ((monthIndex * 3 + employeeIndex) % 17));
+    const overtime15Hours = round(Math.max(0, employee.overtimeBias * 1.2 + ((employeeIndex + monthIndex) % 4) * 1.4 + (month.monthNumber % 6 === 0 ? 2 : 0)), 1);
+    const overtime20Hours = round((employee.overtimeBias % 3) * 0.9 + ((employeeIndex * 2 + monthIndex) % 3) * 1.2, 1);
+    const overtime30Hours = round(((employeeIndex * 3 + monthIndex + employee.overtimeBias) % 13 === 0) ? 4 + employee.overtimeBias * 0.8 : 0, 1);
+    const annualLeaveHours = round(((monthIndex + employeeIndex + employee.leaveBias) % (7 + employee.leaveBias) === 0) ? 8 : 0, 1);
+    const sickLeaveHours = round(((monthIndex * 2 + employeeIndex + employee.riskBias) % (15 - Math.min(employee.riskBias, 3)) === 0) ? 4 : 0, 1);
     const leaveHours = annualLeaveHours + sickLeaveHours;
     const overtimeTotalHours = overtime15Hours + overtime20Hours + overtime30Hours;
     const compositeHours = round(overtimeTotalHours - leaveHours, 1);
-    const mttrMinutes = round(36 + ((employeeIndex * 11 + monthIndex * 7) % 92) + Math.max(season, 0) * 10, 1);
-    const nearMissCount = (employeeIndex + monthIndex) % 9 === 0 ? 1 : 0;
-    const pdcaCount = (employeeIndex + monthIndex) % 13 === 0 ? 1 : 0;
-    const kaizenCount = (employeeIndex + monthIndex) % 5 === 0 ? 1 : 0;
-    const pdcaBenefit = pdcaCount ? 12000 + employeeIndex * 500 : 0;
-    const kaizenBenefit = kaizenCount ? 1800 + monthIndex * 50 : 0;
+    const mttrMinutes = round(employee.mttrBase + ((employeeIndex * 3 + monthIndex * 7) % 24) + Math.max(season, 0) * (5 + employee.riskBias), 1);
+    const nearMissCount = (employeeIndex + monthIndex + employee.riskBias) % (employee.riskBias >= 3 ? 7 : 13) === 0 ? 1 : 0;
+    const pdcaCount = (employeeIndex + monthIndex + employee.improvementBias) % (employee.improvementBias >= 2 ? 8 : 15) === 0 ? 1 : 0;
+    const kaizenModulo = Math.max(4, 8 - employee.improvementBias);
+    const kaizenCount = (employeeIndex * 2 + monthIndex) % kaizenModulo === 0 ? 1 : 0;
+    const pdcaBenefit = pdcaCount ? 9000 + employee.improvementBias * 2500 + ((employeeIndex + monthIndex) % 7) * 900 : 0;
+    const kaizenBenefit = kaizenCount ? 1200 + employee.improvementBias * 650 + monthIndex * 40 : 0;
     const record = {
       id: `${employee.employeeKey}::${month.label}`,
       sourceId: `MOCK-${employeeIndex + 1}-${month.index}`,
@@ -157,7 +198,7 @@ employeesBase.forEach((employee, employeeIndex) => {
       piHours: round(piHours, 1),
       repairTimeHours: round(repairHours * 0.95, 1),
       mttrMinutes,
-      faultResponseMinutes: round(12 + ((employeeIndex + monthIndex) % 20), 1),
+      faultResponseMinutes: round(8 + employee.responseBias + ((employeeIndex + monthIndex) % 8) * 1.1, 1),
       nearMissCount,
       nearMissBenefit: 0,
       pdcaCount,
@@ -426,17 +467,23 @@ const sourceCoverage = {
   totals: { ledgers: 3, records: rawRecords.length },
 };
 
-const safetyRecords = employees.slice(0, 5).map((employee, index) => ({
-  id: `SAFE-${index + 1}`,
-  employeeKey: employee.employeeKey,
-  key: employee.employeeKey,
-  employeeName: employee.employeeName,
-  employeeNo: employee.employeeNo,
-  department: employee.department,
-  month: months[8 + index * 3].label,
-  year: months[8 + index * 3].year,
-  incidentType: "模拟安全事件",
-}));
+const safetyRecords = employees
+  .filter((employee) => employee.riskBias >= 3)
+  .slice(0, 9)
+  .map((employee, index) => {
+    const incidentMonth = months[(6 + index * 3) % months.length];
+    return {
+      id: `SAFE-${index + 1}`,
+      employeeKey: employee.employeeKey,
+      key: employee.employeeKey,
+      employeeName: employee.employeeName,
+      employeeNo: employee.employeeNo,
+      department: employee.department,
+      month: incidentMonth.label,
+      year: incidentMonth.year,
+      incidentType: "模拟安全事件",
+    };
+  });
 
 const safetyEmployees = safetyRecords.map((record, index) => ({
   key: record.employeeKey,
@@ -444,8 +491,8 @@ const safetyEmployees = safetyRecords.map((record, index) => ({
   employeeName: record.employeeName,
   employeeNo: record.employeeNo,
   department: record.department,
-  incidentCount: index % 2 === 0 ? 2 : 1,
-  incidentMonths: [record.month, ...(index % 2 === 0 ? [months[Math.min(24, 12 + index)].label] : [])],
+  incidentCount: index % 3 === 0 ? 2 : 1,
+  incidentMonths: [record.month, ...(index % 3 === 0 ? [months[(12 + index) % months.length].label] : [])],
 }));
 
 function employeeDetail(employee) {
