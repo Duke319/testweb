@@ -14,9 +14,9 @@
 
 ## 2. 当前前端文件
 
-- 页面结构：[legacy/index.html](/Users/yuyu/Desktop/Bosch/legacy/index.html)
-- 样式文件：[legacy/styles.css](/Users/yuyu/Desktop/Bosch/legacy/styles.css)
-- 前端交互逻辑：[legacy/app.js](/Users/yuyu/Desktop/Bosch/legacy/app.js)
+- 页面结构：[legacy/index.html](../legacy/index.html)
+- 样式文件：[legacy/styles.css](../legacy/styles.css)
+- 前端交互逻辑：[legacy/app.js](../legacy/app.js)
 
 ## 3. 当前界面总结构
 

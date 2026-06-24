@@ -14,7 +14,7 @@ SQL Server 连接依赖为 Node.js `mssql` 包。
 
 ## 2. 建库建表
 
-在空库或新建库中执行 SQL Server schema。SQL Server Management Studio 可直接打开 [db/schema.sqlserver.sql](/Users/yuyu/Desktop/Bosch/db/schema.sqlserver.sql) 后执行；如果使用 SQLCMD 模式，也可以执行：
+在空库或新建库中执行 SQL Server schema。SQL Server Management Studio 可直接打开 [db/schema.sqlserver.sql](../db/schema.sqlserver.sql) 后执行；如果使用 SQLCMD 模式，也可以执行：
 
 ```sql
 :r db/schema.sqlserver.sql
@@ -65,7 +65,7 @@ dbo.employee_certificates
 dbo.import_batches
 ```
 
-字段结构见 [db/schema.sqlserver.sql](/Users/yuyu/Desktop/Bosch/db/schema.sqlserver.sql)。
+字段结构见 [db/schema.sqlserver.sql](../db/schema.sqlserver.sql)。
 
 ## 5. 启动服务
 

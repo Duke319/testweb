@@ -1,6 +1,6 @@
 # 设备周期管理可视化平台
 
-> Clean private release: this repository intentionally excludes real business data, raw Excel/zip files, generated reports, and local build artifacts. The bundled static demo snapshot is an empty placeholder only.
+> Clean public release: this repository intentionally excludes real business data, raw Excel/zip files, generated reports, and local build artifacts. The bundled static demo snapshot contains synthetic mock data only.
 
 一个面向博世杭州电动工具工厂电钻产线的设备全生命周期可视化原型项目，用于把设备引入、运行、维护、备件、图纸、 layout 与生产效率等数据放到同一张业务画布中，帮助团队围绕 OEE 提升建立管理驾驶舱。
 
@@ -80,7 +80,7 @@ npm run legacy:start
 
 ## Microsoft SQL Server 数据库
 
-公司数据库为 Microsoft SQL Server。SQL Server schema 位于 [db/schema.sqlserver.sql](/Users/yuyu/Desktop/Bosch/db/schema.sqlserver.sql)，包含员工、车间、班组、月度绩效、加班、请假、PM01/PM03、改善、证书、权限和审计日志。
+公司数据库为 Microsoft SQL Server。SQL Server schema 位于 [db/schema.sqlserver.sql](db/schema.sqlserver.sql)，包含员工、车间、班组、月度绩效、加班、请假、PM01/PM03、改善、证书、权限和审计日志。
 
 `.env` 核心配置：
 
@@ -96,22 +96,17 @@ WORKER_DATA_SOURCE=mssql
 
 未配置数据库时，新 Express API 会回退读取 `data/worker-performance-monthly.json`，并生成 OT、请假、综合工时、改善、证书等演示指标，保证界面可演示。
 
-SQL Server 接入说明见 [docs/sqlserver-worker-performance.md](/Users/yuyu/Desktop/Bosch/docs/sqlserver-worker-performance.md)。
+SQL Server 接入说明见 [docs/sqlserver-worker-performance.md](docs/sqlserver-worker-performance.md)。
 
-如需从原始 Excel/zip 重新生成中间数据，原始文件位于 `data/raw/employee-performance-system/`：
+如需从原始 Excel/zip 重新生成中间数据，原始文件需在本地私有环境准备，不纳入此公开仓库：
 
 ```bash
 python3 scripts/generate_worker_performance_monthly.py
 ```
 
-## 演示账号
+## 演示登录
 
-演示账号：
-
-- 管理员：`admin / admin123`
-- TEF31 编辑账号：`editor01 / edit123`
-- TEF32 编辑账号：`editor02 / edit123`
-- TEF33 编辑账号：`editor03 / edit123`
+公开仓库和公开页面不展示演示登录凭据。如需访问演示界面，请向项目维护者获取授权凭据。
 
 ## 当前权限模型
 
@@ -126,14 +121,14 @@ python3 scripts/generate_worker_performance_monthly.py
 
 ## 建议的下一步
 
-1. 把 `data/db.json` 中的演示数据替换成试点产线真实数据
-2. 将旧版 `legacy/server.js` 中仍有价值的能力合并到正式 Express 后端
-3. 将明文密码替换为加密存储和正式认证方案
+1. 在私有环境连接 SQL Server 或内部 API 数据源
+2. 将静态演示登录替换为后端认证和正式会话管理
+3. 将旧版 `legacy/server.js` 中仍有价值的能力合并到正式 Express 后端
 4. 增加审核意见、审计日志和权限控制
 
 更多设计说明见：
 
-- [docs/phase-1-prd.md](/Users/yuyu/Desktop/Bosch/docs/phase-1-prd.md)
-- [docs/mvp-blueprint.md](/Users/yuyu/Desktop/Bosch/docs/mvp-blueprint.md)
-- [docs/backend-design.md](/Users/yuyu/Desktop/Bosch/docs/backend-design.md)
-- [docs/frontend-ui-design-handoff.md](/Users/yuyu/Desktop/Bosch/docs/frontend-ui-design-handoff.md)
+- [docs/phase-1-prd.md](docs/phase-1-prd.md)
+- [docs/mvp-blueprint.md](docs/mvp-blueprint.md)
+- [docs/backend-design.md](docs/backend-design.md)
+- [docs/frontend-ui-design-handoff.md](docs/frontend-ui-design-handoff.md)

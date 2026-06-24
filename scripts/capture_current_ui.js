@@ -4,6 +4,8 @@ const { chromium } = require("../archive/tooling/.tooling/playwright/node_module
 const ROOT = path.resolve(__dirname, "..");
 const OUT_DIR = path.join(ROOT, "artifacts", "outputs", "ui-captures");
 const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:4173";
+const DEMO_USERNAME = process.env.DEMO_USERNAME;
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 
 async function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -23,6 +25,10 @@ async function captureSection(page, section, fileName) {
 }
 
 async function main() {
+  if (!DEMO_USERNAME || !DEMO_PASSWORD) {
+    throw new Error("Set DEMO_USERNAME and DEMO_PASSWORD before capturing authenticated UI.");
+  }
+
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 1512, height: 982 },
@@ -34,8 +40,8 @@ async function main() {
   await wait(500);
   await page.screenshot({ path: path.join(OUT_DIR, "login-current.png") });
 
-  await page.fill("#login-username", "admin");
-  await page.fill("#login-password", "admin123");
+  await page.fill("#login-username", DEMO_USERNAME);
+  await page.fill("#login-password", DEMO_PASSWORD);
   await page.click('#login-form button[type="submit"]');
   await page.waitForFunction(() => {
     const view = document.querySelector("#admin-view");

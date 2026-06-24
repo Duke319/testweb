@@ -45,7 +45,7 @@
               name="username"
               autocomplete="username"
               type="text"
-              :placeholder="selectedRole === 'admin' ? 'admin' : 'editor01 / editor02 / editor03'"
+              placeholder="请输入账号"
               required
             />
           </label>
@@ -68,7 +68,7 @@
           </button>
         </form>
 
-        <p id="auth-hint" class="auth-hint">{{ authHint }}</p>
+        <p id="auth-hint" class="auth-hint">请使用已授权凭据登录。</p>
         <p id="auth-error" class="auth-error" :class="{ hidden: !authError }" role="alert">
           {{ authError }}
         </p>
@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import PerformanceDashboard from "./views/PerformanceDashboard.vue";
 import { setPerformanceAuthToken } from "./services/performanceApi";
 import authVisual from "../../assets/auth-visual-bosch-family.webp";
@@ -102,10 +102,10 @@ const roleOptions = [
 ];
 
 const staticDemoUsers = {
-  admin: { password: "admin123", user: { id: "USR-ADMIN-001", username: "admin", displayName: "系统管理员", role: "admin" } },
-  editor01: { password: "edit123", user: { id: "USR-EDIT-001", username: "editor01", displayName: "editor01", role: "editor", departmentScope: "TEF31", scopeLabel: "TEF31" } },
-  editor02: { password: "edit123", user: { id: "USR-EDIT-002", username: "editor02", displayName: "editor02", role: "editor", departmentScope: "TEF32", scopeLabel: "TEF32" } },
-  editor03: { password: "edit123", user: { id: "USR-EDIT-003", username: "editor03", displayName: "editor03", role: "editor", departmentScope: "TEF33", scopeLabel: "TEF33" } },
+  admin: { passwordHash: "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9", user: { id: "USR-ADMIN-001", username: "admin", displayName: "系统管理员", role: "admin" } },
+  editor01: { passwordHash: "84f3ee8f646c896e01ed7933bed50414ae8c8000e44880fa0e0d530e71f3b46e", user: { id: "USR-EDIT-001", username: "editor01", displayName: "editor01", role: "editor", departmentScope: "TEF31", scopeLabel: "TEF31" } },
+  editor02: { passwordHash: "84f3ee8f646c896e01ed7933bed50414ae8c8000e44880fa0e0d530e71f3b46e", user: { id: "USR-EDIT-002", username: "editor02", displayName: "editor02", role: "editor", departmentScope: "TEF32", scopeLabel: "TEF32" } },
+  editor03: { passwordHash: "84f3ee8f646c896e01ed7933bed50414ae8c8000e44880fa0e0d530e71f3b46e", user: { id: "USR-EDIT-003", username: "editor03", displayName: "editor03", role: "editor", departmentScope: "TEF33", scopeLabel: "TEF33" } },
 };
 
 const authChecking = ref(true);
@@ -114,15 +114,6 @@ const authError = ref("");
 const loginPending = ref(false);
 const selectedRole = ref("admin");
 const loginForm = ref({ username: "", password: "" });
-
-const authHint = computed(() => {
-  if (STATIC_DEMO) {
-    return selectedRole.value === "admin"
-      ? "演示账号：admin / admin123"
-      : "演示账号：editor01 / edit123，editor02 / edit123，editor03 / edit123";
-  }
-  return selectedRole.value === "admin" ? "请输入管理员账号进入管理看板。" : "请输入员工账号进入个人工作区。";
-});
 
 function readStoredAuth() {
   try {
@@ -167,12 +158,18 @@ async function authRequest(path, options = {}) {
   return payload;
 }
 
-function loginStaticDemo() {
+async function loginStaticDemo() {
   const record = staticDemoUsers[loginForm.value.username];
-  if (!record || record.password !== loginForm.value.password) {
+  if (!record || record.passwordHash !== await sha256(loginForm.value.password)) {
     throw new Error("账号或密码不正确");
   }
   return { token: `static-demo-${record.user.username}`, user: record.user };
+}
+
+async function sha256(value) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function restoreSession() {
@@ -200,7 +197,7 @@ async function handleLoginSubmit() {
   loginPending.value = true;
   try {
     const payload = STATIC_DEMO
-      ? loginStaticDemo()
+      ? await loginStaticDemo()
       : await authRequest("/api/auth/login", {
           method: "POST",
           body: {

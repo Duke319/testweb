@@ -1,6 +1,6 @@
 # MVP 蓝图
 
-这份蓝图是一期原型的简版总览，详细规划见 [docs/phase-1-prd.md](/Users/yuyu/Desktop/Bosch/docs/phase-1-prd.md)。
+这份蓝图是一期原型的简版总览，详细规划见 [docs/phase-1-prd.md](phase-1-prd.md)。
 
 ## 一期定位
 

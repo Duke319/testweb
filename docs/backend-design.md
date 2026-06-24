@@ -175,7 +175,7 @@ CREATE TABLE user_sessions (
 {
   "role": "admin",
   "username": "admin",
-  "password": "admin123"
+  "password": "<password>"
 }
 ```
 

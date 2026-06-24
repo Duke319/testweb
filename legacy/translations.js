@@ -42,7 +42,7 @@ window.BoschI18n = {
         footer: "安全连接已建立 · 博世电动工具杭州工厂",
         systemStatus: "系统状态：在线",
         systemStatusDetail: "各产线遥测正常，主机同步已完成。",
-        hint: "演示账号：admin / admin123，editor01 / edit123，editor02 / edit123，editor03 / edit123",
+        hint: "演示环境需要授权账号，请向维护者获取登录凭据。",
       },
       common: {
         siteKicker: "Bosch Power Tools · Hangzhou",
@@ -624,7 +624,7 @@ window.BoschI18n = {
         footer: "Secure connection established · Bosch Power Tools Hangzhou",
         systemStatus: "System Status: Online",
         systemStatusDetail: "All production lines reporting nominal telemetry. Mainframe sync complete.",
-        hint: "Demo accounts: admin / admin123, editor01 / edit123, editor02 / edit123, editor03 / edit123",
+        hint: "Demo access requires authorized credentials. Contact the maintainer for login details.",
       },
       common: {
         siteKicker: "Bosch Power Tools · Hangzhou",
@@ -1206,7 +1206,7 @@ window.BoschI18n = {
         footer: "Secure connection established · Bosch Power Tools Hangzhou",
         systemStatus: "System Status: Online",
         systemStatusDetail: "All production lines reporting nominal telemetry. Mainframe sync complete.",
-        hint: "Demo-Konten: admin / admin123, editor01 / edit123, editor02 / edit123, editor03 / edit123",
+        hint: "Demo-Zugriff erfordert autorisierte Zugangsdaten. Bitte beim Maintainer anfragen.",
       },
       common: {
         siteKicker: "Bosch Power Tools · Hangzhou",
