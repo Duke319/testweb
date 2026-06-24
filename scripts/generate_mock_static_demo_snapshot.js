@@ -5,11 +5,16 @@ const outFile = path.resolve(__dirname, "../frontend/public/demo/static-demo-sna
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const departments = ["TEF31", "TEF32", "TEF33"];
 const certificateTypes = [
-  { code: "ELEC", name: "Electrical Safety" },
-  { code: "MECH", name: "Mechanical Maintenance" },
-  { code: "PLC", name: "PLC Debugging" },
-  { code: "LIFT", name: "Lifting Operation" },
+  { code: "DQAQ", name: "低压电气安全操作证" },
+  { code: "JXWX", name: "机械维修技能证" },
+  { code: "PLCTS", name: "PLC调试与故障诊断证" },
+  { code: "QZBZ", name: "起重搬运安全证" },
+  { code: "GYZD", name: "工艺诊断能力证" },
+  { code: "SBXJ", name: "设备巡检上岗证" },
 ];
+const surnames = ["王", "李", "张", "刘", "陈", "杨", "赵", "黄", "周", "吴", "徐", "孙", "胡", "朱", "高", "林", "何", "郭", "马", "罗", "梁", "宋", "郑", "谢", "韩"];
+const givenNameFirstChars = ["梓", "宇", "俊", "思", "嘉", "明", "浩", "子", "亦", "文"];
+const givenNameSecondChars = ["轩", "涵", "辰", "琪", "宁", "睿", "航", "然", "杰", "安"];
 
 function monthsBetween(startYear, startMonthIndex, endYear, endMonthIndex) {
   const months = [];
@@ -37,28 +42,65 @@ function average(rows, field) {
   return values.length ? round(values.reduce((total, value) => total + value, 0) / values.length, 1) : null;
 }
 
+function uniqueCount(rows, field) {
+  return new Set(rows.map((row) => row[field]).filter(Boolean)).size;
+}
+
+function uniqueValues(rows, field) {
+  return [...new Set(rows.map((row) => row[field]).filter(Boolean))];
+}
+
+function makeChineseName(index) {
+  const surname = surnames[index % surnames.length];
+  const first = givenNameFirstChars[Math.floor(index / givenNameSecondChars.length) % givenNameFirstChars.length];
+  const second = givenNameSecondChars[index % givenNameSecondChars.length];
+  return `${surname}${first}${second}`;
+}
+
+function certificateStatus(employeeIndex, certIndex) {
+  const state = (employeeIndex * 2 + certIndex) % 5;
+  const hasCertificate = state !== 4;
+  return {
+    hasCertificate,
+    status: !hasCertificate ? "missing" : state === 3 ? "expired" : state === 2 ? "expiring" : "valid",
+    stateLabel: !hasCertificate ? "未登记" : state === 3 ? "已过期" : state === 2 ? "即将到期" : "有效",
+  };
+}
+
+function countCertificateGaps(employeeCount) {
+  let count = 0;
+  for (let employeeIndex = 0; employeeIndex < employeeCount; employeeIndex += 1) {
+    for (let certIndex = 0; certIndex < certificateTypes.length; certIndex += 1) {
+      if (!certificateStatus(employeeIndex, certIndex).hasCertificate) {
+        count += 1;
+      }
+    }
+  }
+  return count;
+}
+
 function makeEmployee(index) {
   const department = departments[index % departments.length];
-  const no = `DEMO-${String(index + 1).padStart(3, "0")}`;
+  const no = `MOC-${String(index + 1).padStart(3, "0")}`;
   return {
-    employeeKey: `DEMO::${department}::${String(index + 1).padStart(3, "0")}`,
+    employeeKey: `MOCK::${department}::${String(index + 1).padStart(3, "0")}`,
     employeeNo: no,
-    employeeName: `Demo Tech ${String(index + 1).padStart(2, "0")}`,
+    employeeName: makeChineseName(index),
     department,
-    businessArea: "DEMO",
-    plant: "Demo Plant",
-    workshop: "Demo Workshop",
+    businessArea: "模拟业务区",
+    plant: "杭州模拟工厂",
+    workshop: `${department}维修班组`,
     shift: `${department}-${(index % 2) + 1}`,
-    positionTitle: index % 3 === 0 ? "Senior Technician" : "Maintenance Technician",
-    jobTitle: "Technician",
-    role: "Maintenance",
-    piTargetRate: 0.72 + (index % 3) * 0.03,
-    piTargetLabel: `${department} Target`,
+    positionTitle: index % 3 === 0 ? "高级维修技师" : "维修技师",
+    jobTitle: "设备维修技师",
+    role: "设备维修",
+    piTargetRate: 0.78 + (index % 4) * 0.02,
+    piTargetLabel: `${department} PI目标`,
   };
 }
 
 const months = monthsBetween(2024, 0, 2026, 3);
-const employeesBase = Array.from({ length: 12 }, (_, index) => makeEmployee(index));
+const employeesBase = Array.from({ length: 100 }, (_, index) => makeEmployee(index));
 const rawRecords = [];
 const improvementRecords = [];
 
@@ -66,11 +108,13 @@ employeesBase.forEach((employee, employeeIndex) => {
   months.forEach((month, monthIndex) => {
     const season = Math.sin((monthIndex + employeeIndex) / 3);
     const attendanceHours = round(150 + ((employeeIndex * 7 + monthIndex * 5) % 36) + season * 4, 1);
-    const pm01Hours = round(attendanceHours * (0.24 + ((employeeIndex + monthIndex) % 5) * 0.015), 1);
-    const pm03Hours = round(attendanceHours * (0.15 + ((employeeIndex * 2 + monthIndex) % 4) * 0.012), 1);
-    const transferHours = round(((employeeIndex + monthIndex) % 4) * 3.5, 1);
-    const repairHours = round(pm01Hours + pm03Hours + transferHours * 0.5, 1);
+    const piRate = 0.755 + ((employeeIndex * 7 + monthIndex * 3) % 10) / 100;
+    const piHoursTarget = round(attendanceHours * piRate, 1);
+    const transferHours = round(piHoursTarget * (0.07 + ((employeeIndex + monthIndex) % 4) * 0.01), 1);
+    const pm01Hours = round(piHoursTarget * (0.54 + ((employeeIndex + monthIndex) % 5) * 0.015), 1);
+    const pm03Hours = round(Math.max(0, piHoursTarget - pm01Hours - transferHours), 1);
     const piHours = pm01Hours + pm03Hours + transferHours;
+    const repairHours = round(piHours * (0.88 + ((employeeIndex + monthIndex) % 5) * 0.018), 1);
     const orderCount = Math.round(62 + employeeIndex * 5 + monthIndex * 1.5 + season * 8);
     const overtime15Hours = round(((employeeIndex + monthIndex) % 5) * 2.5, 1);
     const overtime20Hours = round(((employeeIndex * 2 + monthIndex) % 4) * 1.5, 1);
@@ -128,7 +172,7 @@ employeesBase.forEach((employee, employeeIndex) => {
       provenance: {
         importBatchId: "MOCK-BATCH-001",
         sourceFile: "mock-static-demo",
-        sourceSheet: "generated",
+        sourceSheet: "模拟生成",
         sourceRow: employeeIndex * months.length + monthIndex + 2,
         sourceField: "",
         rawValue: null,
@@ -141,7 +185,7 @@ employeesBase.forEach((employee, employeeIndex) => {
       improvementRecords.push({
         id: `IMP-${employeeIndex + 1}-${month.index}`,
         projectId: `IMP-${employeeIndex + 1}-${month.index}`,
-        projectTitle: `${pdcaCount ? "PDCA" : kaizenCount ? "Kaizen" : "Near miss"} demo action ${employeeIndex + 1}`,
+        projectTitle: `${pdcaCount ? "PDCA" : kaizenCount ? "改善提案" : "安全隐患"}模拟项目 ${employeeIndex + 1}`,
         projectType: pdcaCount ? "PDCA" : kaizenCount ? "Kaizen" : "Near miss",
         improvementType: pdcaCount ? "pdca" : kaizenCount ? "kaizen" : "nearMiss",
         employeeNo: employee.employeeNo,
@@ -177,7 +221,7 @@ function aggregateEmployee(employee, rank) {
   const overtimeTotalHours = sum(rows, "overtimeTotalHours");
   const compositeHours = sum(rows, "compositeHours");
   const piHours = pm01Hours + pm03Hours + transferHours;
-  const annualCompositeHours = Math.max(0, compositeHours + 160 + rank * 12);
+  const annualCompositeHours = Math.max(0, compositeHours + 180 + (rank % 18) * 8);
   return {
     ...employee,
     month: "2026 Apr",
@@ -212,7 +256,7 @@ function aggregateEmployee(employee, rank) {
     kaizenCount: sum(rows, "kaizenCount"),
     kaizenBenefit: sum(rows, "kaizenBenefit"),
     kaizenAwardCount: sum(rows, "kaizenAwardCount"),
-    performanceScore: round(70 + rank * 1.8, 1),
+    performanceScore: round(78 + (piHours / attendanceHours - 0.75) * 180 + Math.min(6, sum(rows, "pdcaCount") + sum(rows, "kaizenCount")) * 0.5, 1),
     rank,
     repairHoursShare: round((repairHours / sum(rawRecords, "repairHours")) * 100, 1),
     monthCount: rows.length,
@@ -271,11 +315,11 @@ const trend = months.map(aggregateMonth);
 const summary = {
   source: "mock",
   employeeCount: employees.length,
-  departmentCount: departments.length,
-  businessAreaCount: 1,
-  plantCount: 1,
-  workshopCount: 1,
-  shiftCount: 6,
+  departmentCount: uniqueCount(employees, "department"),
+  businessAreaCount: uniqueCount(employees, "businessArea"),
+  plantCount: uniqueCount(employees, "plant"),
+  workshopCount: uniqueCount(employees, "workshop"),
+  shiftCount: uniqueCount(employees, "shift"),
   totalAttendanceHours: round(sum(rawRecords, "attendanceHours"), 1),
   totalRepairHours: round(sum(rawRecords, "repairHours"), 1),
   totalOrderCount: sum(rawRecords, "orderCount"),
@@ -283,7 +327,7 @@ const summary = {
   totalOvertimeHours: round(sum(rawRecords, "overtimeTotalHours"), 1),
   totalCompositeHours: round(sum(rawRecords, "compositeHours"), 1),
   compositeWarningCount: employees.filter((employee) => employee.compositeRisk !== "ok").length,
-  certificateGapCount: 14,
+  certificateGapCount: countCertificateGaps(employees.length),
   mttrMinutes: average(rawRecords, "mttrMinutes"),
   faultResponseMinutes: average(rawRecords, "faultResponseMinutes"),
   nearMissCount: sum(rawRecords, "nearMissCount"),
@@ -299,10 +343,10 @@ const summary = {
 const filterOptions = {
   years: ["2024", "2025", "2026"],
   months: months.map((month) => month.label),
-  businessAreas: ["DEMO"],
-  departments,
-  workshops: ["Demo Workshop"],
-  shifts: [...new Set(employees.map((employee) => employee.shift))],
+  businessAreas: uniqueValues(employees, "businessArea"),
+  departments: uniqueValues(employees, "department"),
+  workshops: uniqueValues(employees, "workshop"),
+  shifts: uniqueValues(employees, "shift"),
   employees: employees.map((employee) => ({
     employeeKey: employee.employeeKey,
     employeeName: employee.employeeName,
@@ -314,16 +358,15 @@ const filterOptions = {
 const competenceEmployees = employees.map((employee, employeeIndex) => ({
   ...employee,
   certificates: certificateTypes.map((type, certIndex) => {
-    const state = (employeeIndex + certIndex) % 4;
-    const hasCertificate = state !== 3;
+    const certificate = certificateStatus(employeeIndex, certIndex);
     return {
       code: type.code,
       name: type.name,
-      hasCertificate,
-      status: !hasCertificate ? "missing" : state === 2 ? "expiring" : "valid",
-      stateLabel: !hasCertificate ? "未登记" : state === 2 ? "即将到期" : "有效",
-      expireDate: hasCertificate ? `202${6 + (certIndex % 2)}-0${(certIndex % 9) + 1}-28` : "",
-      detail: hasCertificate ? "mock" : "",
+      hasCertificate: certificate.hasCertificate,
+      status: certificate.status,
+      stateLabel: certificate.stateLabel,
+      expireDate: certificate.hasCertificate ? `202${6 + (certIndex % 2)}-0${(certIndex % 9) + 1}-28` : "",
+      detail: certificate.hasCertificate ? "模拟证书记录" : "",
     };
   }),
 }));
@@ -360,25 +403,25 @@ const authenticityAnomalies = rawRecords
     category: index % 2 === 0 ? "数据真实性" : "维修响应",
     type: index % 2 === 0 ? "zero_attendance_with_work" : "repair_time_over_threshold",
     severity: index % 3 === 0 ? "critical" : "major",
-    reason: "Mock anomaly for demo review",
+    reason: "模拟异常，用于演示审核流程",
     sourceFile: "mock-static-demo",
     sourceRow: index + 2,
   }));
 
 const gapChecklist = {
   rows: [
-    { category: "缺失", module: "员工与组织", item: "HR 正式员工主数据", need: "接入正式 HR 主数据", sourceStatus: "mock placeholder", severity: "critical" },
-    { category: "待确认", module: "工单结构", item: "PM01/PM03 拆分", need: "补充正式工单 PM 类型", sourceStatus: "mock placeholder", severity: "major" },
-    { category: "缺失", module: "安全", item: "Near miss 正式来源", need: "接入 HSE 台账", sourceStatus: "mock placeholder", severity: "major" },
+    { category: "缺失", module: "员工与组织", item: "HR 正式员工主数据", need: "接入正式 HR 主数据", sourceStatus: "模拟占位", severity: "critical" },
+    { category: "待确认", module: "工单结构", item: "PM01/PM03 拆分", need: "补充正式工单 PM 类型", sourceStatus: "模拟占位", severity: "major" },
+    { category: "缺失", module: "安全", item: "Near miss 正式来源", need: "接入 HSE 台账", sourceStatus: "模拟占位", severity: "major" },
   ],
 };
 
 const sourceCoverage = {
   servingSource: "mock",
   ledgers: [
-    { id: "mock-performance", name: "Performance monthly", source: "Generated mock", status: "Review", note: "No real records included" },
-    { id: "mock-certificate", name: "Certificate matrix", source: "Generated mock", status: "Review", note: "No real records included" },
-    { id: "mock-improvement", name: "Improvement records", source: "Generated mock", status: "Review", note: "No real records included" },
+    { id: "mock-performance", name: "月度绩效模拟数据", source: "生成的模拟数据", status: "Review", note: "不包含真实记录" },
+    { id: "mock-certificate", name: "证书矩阵模拟数据", source: "生成的模拟数据", status: "Review", note: "不包含真实记录" },
+    { id: "mock-improvement", name: "改善记录模拟数据", source: "生成的模拟数据", status: "Review", note: "不包含真实记录" },
   ],
   totals: { ledgers: 3, records: rawRecords.length },
 };
@@ -392,7 +435,7 @@ const safetyRecords = employees.slice(0, 5).map((employee, index) => ({
   department: employee.department,
   month: months[8 + index * 3].label,
   year: months[8 + index * 3].year,
-  incidentType: "Mock safety incident",
+  incidentType: "模拟安全事件",
 }));
 
 const safetyEmployees = safetyRecords.map((record, index) => ({
