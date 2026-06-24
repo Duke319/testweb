@@ -752,7 +752,6 @@ const snapshot = {
     sourceCoverage,
     gapChecklist,
   },
-  employeeDetails,
 };
 
 fs.mkdirSync(path.dirname(outFile), { recursive: true });

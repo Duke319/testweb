@@ -105,6 +105,15 @@ function staticSummaryFromRows(rows = [], fallback = {}) {
   };
 }
 
+function sumStaticField(rows = [], field) {
+  return rows.reduce((total, row) => total + (Number(row[field]) || 0), 0);
+}
+
+function averageStaticField(rows = [], field) {
+  const values = rows.map((row) => Number(row[field])).filter((value) => Number.isFinite(value) && value > 0);
+  return values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
+}
+
 function scopedStaticAdmin(snapshot, params = {}) {
   const filters = withStaticScope(params);
   const rawRecords = filterStaticRows(snapshot.admin?.rawRecords || [], filters);
@@ -160,6 +169,61 @@ function scopedStaticAuthenticity(snapshot, params = {}) {
   };
 }
 
+function buildStaticEmployeeDetail(snapshot, employeeKey, params = {}) {
+  const filters = withStaticScope(params);
+  const allRows = (snapshot.admin?.rawRecords || []).filter((row) => row.employeeKey === employeeKey);
+  const scopedRows = filterStaticRows(allRows, filters);
+  const profile = (snapshot.admin?.employees || []).find((employee) => employee.employeeKey === employeeKey) || allRows[0] || null;
+  if (!profile || !departmentMatches(profile, filters.department)) {
+    return EMPTY_DETAIL;
+  }
+
+  const departmentEmployees = (snapshot.admin?.employees || []).filter((employee) => employee.department === profile.department);
+  const overallEmployees = snapshot.admin?.employees || [];
+  const overallAvgRepairEfficiency = averageStaticField(overallEmployees, "repairEfficiency") || 0;
+  const detailRows = scopedRows.length ? scopedRows : allRows;
+  const lastRow = detailRows[detailRows.length - 1] || {};
+
+  return {
+    source: "static-demo",
+    profile,
+    comparisons: {
+      selectedMonth: params.month || lastRow.month || profile.month || "",
+      department: profile.department || "",
+      departmentEmployeeCount: departmentEmployees.length,
+      overallEmployeeCount: overallEmployees.length,
+      departmentAvgRepairEfficiency: averageStaticField(departmentEmployees, "repairEfficiency"),
+      overallAvgRepairEfficiency,
+      repairEfficiencyDelta: Number(profile.repairEfficiency || 0) - overallAvgRepairEfficiency,
+      orderCountDelta: 0,
+      repairHoursDelta: 0,
+    },
+    monthlyTrends: scopedRows,
+    records: scopedRows,
+    improvementSummary: {
+      nearMissCount: sumStaticField(scopedRows, "nearMissCount"),
+      nearMissBenefit: sumStaticField(scopedRows, "nearMissBenefit"),
+      pdcaCount: sumStaticField(scopedRows, "pdcaCount"),
+      pdcaBenefit: sumStaticField(scopedRows, "pdcaBenefit"),
+      pdcaAwardCount: sumStaticField(scopedRows, "pdcaAwardCount"),
+      kaizenCount: sumStaticField(scopedRows, "kaizenCount"),
+      kaizenBenefit: sumStaticField(scopedRows, "kaizenBenefit"),
+      kaizenAwardCount: sumStaticField(scopedRows, "kaizenAwardCount"),
+    },
+    improvementTrend: scopedRows.filter((row) => row.nearMissCount || row.pdcaCount || row.kaizenCount),
+    improvementRecords: [],
+    provenance: scopedRows.map((row) => ({
+      id: row.id,
+      month: row.month,
+      employeeKey: row.employeeKey,
+      employeeName: row.employeeName,
+      validationStatus: row.validationStatus || "valid",
+      provenance: row.provenance || null,
+    })),
+    dataQuality: { source: "static-demo", totalRecords: scopedRows.length, validRecords: scopedRows.length, quarantinedRecords: 0, criticalCount: 0 },
+  };
+}
+
 function requestStatic(path, params = {}) {
   const snapshot = staticSnapshot();
   if (path === "/api/performance/boss-summary") {
@@ -212,7 +276,7 @@ function requestStatic(path, params = {}) {
   const employeeMatch = path.match(/^\/api\/performance\/employees\/(.+)$/);
   if (employeeMatch) {
     const employeeKey = decodeURIComponent(employeeMatch[1]);
-    const detail = snapshot.employeeDetails?.[employeeKey] || EMPTY_DETAIL;
+    const detail = snapshot.employeeDetails?.[employeeKey] || buildStaticEmployeeDetail(snapshot, employeeKey, params);
     const filters = withStaticScope(params);
     if (detail.profile && !departmentMatches(detail.profile, filters.department)) {
       return Promise.resolve(EMPTY_DETAIL);
