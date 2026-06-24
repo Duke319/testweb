@@ -1,0 +1,96 @@
+{
+  "name": "bosch-performance-platform",
+  "version": "1.0.0",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "node backend/server.js",
+    "legacy:start": "node legacy/server.js",
+    "dev:backend": "node backend/server.js",
+    "dev:frontend": "vite --config frontend/vite.config.js --host 127.0.0.1",
+    "build": "npm run build:frontend",
+    "build:frontend": "vite build --config frontend/vite.config.js",
+    "electron:dev": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win portable --x64",
+    "dist:win:dir": "npm run build && electron-builder --win dir --x64",
+    "dist:win:zip": "npm run build && electron-builder --win zip --x64",
+    "dist:win:light": "npm run build && pkg scripts/windows_demo_launcher.cjs --targets node18-win-x64 --output release/Bosch-Performance-Demo-light.exe",
+    "migrate": "node scripts/run_migrations.js",
+    "import:worker-performance": "node scripts/import_worker_performance_sqlserver.js",
+    "audit:data-gaps": "node scripts/update_data_gap_checklist.js",
+    "test": "node tests/dataAuthenticity.test.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mssql": "^12.5.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "echarts": "^5.6.0",
+    "electron": "^37.10.3",
+    "electron-builder": "^26.15.2",
+    "pkg": "^5.8.1",
+    "vite": "^6.0.7",
+    "vue": "^3.5.13"
+  },
+  "pkg": {
+    "assets": [
+      "frontend/dist/**/*",
+      "data/db.json",
+      "data/worker-performance-monthly.json",
+      "data/employee-certificates.json",
+      "data/repair-time-anomalies.json",
+      "data/pdca-improvements.json",
+      "data/near-miss-records.json",
+      "data/mock-near-miss-awards.json"
+    ],
+    "scripts": [
+      "backend/**/*.js",
+      "src/**/*.js"
+    ]
+  },
+  "build": {
+    "appId": "com.bosch.performance.demo",
+    "productName": "Bosch Performance Demo",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "src/**/*",
+      "frontend/dist/**/*",
+      "data/db.json",
+      "data/worker-performance-monthly.json",
+      "data/employee-certificates.json",
+      "data/repair-time-anomalies.json",
+      "data/pdca-improvements.json",
+      "data/near-miss-records.json",
+      "data/mock-near-miss-awards.json",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Bosch-Performance-Demo-${version}-portable.exe"
+    }
+  }
+}

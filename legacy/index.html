@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>博世杭州电动工具工厂设备管理驾驶舱</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="icon-user" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 20c1.8-4 5-6 8-6s6.2 2 8 6"></path>
+      </symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24">
+        <rect x="5" y="11" width="14" height="10" rx="2"></rect>
+        <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+      </symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6"></circle>
+        <path d="m20 20-4.2-4.2"></path>
+      </symbol>
+      <symbol id="icon-bell" viewBox="0 0 24 24">
+        <path d="M6 16h12l-1.2-1.8A6 6 0 0 1 16 11V9a4 4 0 1 0-8 0v2c0 1.1-.3 2.2-.8 3.2L6 16Z"></path>
+        <path d="M10 18a2 2 0 0 0 4 0"></path>
+      </symbol>
+      <symbol id="icon-settings" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a8 8 0 0 0-1.7-1l-.3-2.6h-4l-.3 2.6a8 8 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 1.7 1l.3 2.6h4l.3-2.6a8 8 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5c.1-.3.1-.7.1-1Z"></path>
+      </symbol>
+      <symbol id="icon-help" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M9.5 9a2.5 2.5 0 1 1 4.6 1.3c-.4.6-1 .9-1.6 1.4-.7.5-1 1-1 2"></path>
+        <circle cx="12" cy="17.5" r="1"></circle>
+      </symbol>
+      <symbol id="icon-logout" viewBox="0 0 24 24">
+        <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"></path>
+        <path d="M13 8l4 4-4 4"></path>
+        <path d="M17 12H9"></path>
+      </symbol>
+      <symbol id="icon-dashboard" viewBox="0 0 24 24">
+        <rect x="4" y="4" width="7" height="7"></rect>
+        <rect x="13" y="4" width="7" height="4"></rect>
+        <rect x="13" y="10" width="7" height="10"></rect>
+        <rect x="4" y="13" width="7" height="7"></rect>
+      </symbol>
+      <symbol id="icon-lifecycle" viewBox="0 0 24 24">
+        <path d="M5 7h6"></path>
+        <path d="M9 3l4 4-4 4"></path>
+        <path d="M19 17h-6"></path>
+        <path d="M15 13l-4 4 4 4"></path>
+      </symbol>
+      <symbol id="icon-analytics" viewBox="0 0 24 24">
+        <path d="M4 19h16"></path>
+        <path d="M7 15V9"></path>
+        <path d="M12 15V5"></path>
+        <path d="M17 15v-3"></path>
+      </symbol>
+      <symbol id="icon-factory" viewBox="0 0 24 24">
+        <path d="M3 21V9l7 4V9l7 4V5l4 2v14Z"></path>
+        <path d="M7 21v-4"></path>
+        <path d="M11 21v-3"></path>
+        <path d="M15 21v-4"></path>
+      </symbol>
+      <symbol id="icon-layout" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="7" height="6"></rect>
+        <rect x="14" y="4" width="7" height="6"></rect>
+        <rect x="8.5" y="14" width="7" height="6"></rect>
+        <path d="M10 7h4"></path>
+        <path d="M17.5 10v4"></path>
+        <path d="M6.5 10v4"></path>
+      </symbol>
+      <symbol id="icon-rule" viewBox="0 0 24 24">
+        <path d="M8 7h12"></path>
+        <path d="M8 12h12"></path>
+        <path d="M8 17h12"></path>
+        <path d="m4 7 1.5 1.5L7.5 6"></path>
+        <path d="m4 12 1.5 1.5L7.5 11"></path>
+        <path d="m4 17 1.5 1.5L7.5 16"></path>
+      </symbol>
+      <symbol id="icon-support" viewBox="0 0 24 24">
+        <path d="M5 12a7 7 0 0 1 14 0"></path>
+        <path d="M5 12v4a2 2 0 0 0 2 2h2v-6H7a2 2 0 0 0-2 2Z"></path>
+        <path d="M19 12v4a2 2 0 0 1-2 2h-2v-6h2a2 2 0 0 1 2 2Z"></path>
+        <path d="M12 19v2"></path>
+      </symbol>
+      <symbol id="icon-edit" viewBox="0 0 24 24">
+        <path d="M4 20h4l10-10-4-4L4 16v4Z"></path>
+        <path d="m13 7 4 4"></path>
+      </symbol>
+      <symbol id="icon-history" viewBox="0 0 24 24">
+        <path d="M4 12a8 8 0 1 0 2.3-5.7"></path>
+        <path d="M4 4v5h5"></path>
+        <path d="M12 8v5l3 2"></path>
+      </symbol>
+    </svg>
+    <div class="auth-screen" id="auth-screen">
+      <div class="auth-shell">
+        <div class="auth-card">
+          <div class="language-switch auth-language-switch" aria-label="Language Switch">
+            <button class="lang-btn active" type="button" data-lang="zh">中</button>
+            <button class="lang-btn" type="button" data-lang="en">EN</button>
+            <button class="lang-btn" type="button" data-lang="de">DE</button>
+          </div>
+
+          <div class="auth-brand">
+            <img class="bosch-logo auth-logo bosch-logo-image" src="assets/bosch-logo.svg" alt="Bosch logo" />
+            <div class="auth-brand-copy">
+              <strong>设备数据协同平台</strong>
+              <p>Bosch Power Tools Hangzhou</p>
+            </div>
+          </div>
+
+          <div class="auth-copy">
+            <h1>系统登录</h1>
+            <p>管理员、编辑账号与只读账号共用统一入口，系统会自动识别当前权限。</p>
+          </div>
+
+          <form class="auth-form" id="login-form">
+            <label class="form-field" for="login-username">
+              <span>账号</span>
+              <div class="input-shell">
+                <svg class="ui-icon input-icon" aria-hidden="true"><use href="#icon-user"></use></svg>
+                <input
+                  id="login-username"
+                  name="username"
+                  type="text"
+                  autocomplete="username"
+                  placeholder="请输入系统账号"
+                  required
+                />
+              </div>
+            </label>
+
+            <label class="form-field" for="login-password">
+              <span>密码</span>
+              <div class="input-shell">
+                <svg class="ui-icon input-icon" aria-hidden="true"><use href="#icon-lock"></use></svg>
+                <input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="请输入密码"
+                  required
+                />
+              </div>
+            </label>
+
+            <div class="auth-inline">
+              <label class="checkbox-field">
+                <input type="checkbox" />
+                <span>记住当前终端</span>
+              </label>
+              <button class="link-btn" type="button">忘记密码？</button>
+            </div>
+
+            <div class="auth-hint" id="auth-hint"></div>
+            <div class="auth-error hidden" id="auth-error"></div>
+
+            <button class="primary-btn auth-submit" type="submit">登录</button>
+          </form>
+
+          <div class="auth-footer">Secure connection established · Bosch Power Tools Hangzhou</div>
+        </div>
+
+        <div class="auth-visual" aria-hidden="true">
+          <img class="auth-visual-image" src="assets/auth-visual-bosch-family.webp" alt="" />
+          <div class="auth-visual-overlay"></div>
+          <div class="auth-status-card">
+            <div class="auth-status-row">
+              <span class="auth-status-dot"></span>
+              <strong>System Status: Online</strong>
+            </div>
+            <p>All production lines reporting nominal telemetry. Mainframe sync complete.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <header class="topbar" id="top">
+        <div class="brand">
+          <img class="topbar-logo bosch-logo-image" src="assets/bosch-logo.svg" alt="Bosch logo" />
+          <div class="brand-block">
+            <span class="brand-kicker">Bosch Power Tools · Hangzhou</span>
+            <strong id="page-title">设备管理系统</strong>
+          </div>
+        </div>
+
+        <div class="topbar-side">
+          <div class="language-switch topbar-language-switch" aria-label="Language Switch">
+            <button class="lang-btn active" type="button" data-lang="zh">中</button>
+            <button class="lang-btn" type="button" data-lang="en">EN</button>
+            <button class="lang-btn" type="button" data-lang="de">DE</button>
+          </div>
+
+          <div class="search-shell">
+            <svg class="ui-icon search-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+            <input
+              id="global-search-input"
+              type="search"
+              placeholder="搜索设备、工位、记录..."
+              autocomplete="off"
+              aria-label="站内搜索"
+            />
+            <div class="search-results hidden" id="global-search-results"></div>
+          </div>
+
+          <button class="utility-btn" id="topbar-notifications-btn" type="button" aria-label="通知">
+            <svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>
+          </button>
+          <button class="utility-btn" id="topbar-settings-btn" type="button" aria-label="设置">
+            <svg class="ui-icon" aria-hidden="true"><use href="#icon-settings"></use></svg>
+          </button>
+          <button class="utility-btn" id="topbar-help-btn" type="button" aria-label="帮助">
+            <svg class="ui-icon" aria-hidden="true"><use href="#icon-help"></use></svg>
+          </button>
+
+          <div class="account-box hidden" id="account-box">
+            <span class="role-pill" id="role-pill"></span>
+            <span class="account-name" id="account-name"></span>
+            <button class="utility-btn logout-btn" id="logout-btn" type="button" aria-label="退出登录">
+              <svg class="ui-icon" aria-hidden="true"><use href="#icon-logout"></use></svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <section class="hero" id="workspace-hero">
+        <div class="hero-copy">
+          <div class="hero-copy-block">
+            <span class="hero-kicker" id="hero-kicker">Admin Console</span>
+            <h1 id="hero-heading">Plant Overview</h1>
+            <p id="hero-subheading">聚焦杭州电钻产线的设备、趋势、风险与资料状态。</p>
+          </div>
+          <div class="hero-actions">
+            <button class="ghost-btn hidden" id="hero-secondary-action" type="button"></button>
+            <button class="primary-btn" id="hero-primary-action" type="button">查看问题设备</button>
+          </div>
+        </div>
+      </section>
+
+      <main class="workspace hidden" id="admin-view">
+        <aside class="sidebar panel">
+          <div class="sidebar-brand">
+            <img class="sidebar-logo" src="assets/bosch-logo.svg" alt="Bosch logo" />
+            <div class="sidebar-brand-copy">
+              <strong>BOSCH</strong>
+              <span>Management System</span>
+            </div>
+          </div>
+
+          <div class="sidebar-menu" id="admin-sidebar">
+            <button class="sidebar-item active" type="button" data-section="submission-center">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-dashboard"></use></svg>
+              <span>数据提交</span>
+            </button>
+            <button class="sidebar-item" type="button" data-section="worker-performance">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-user"></use></svg>
+              <span>员工绩效</span>
+            </button>
+            <button class="sidebar-item" type="button" data-section="lifecycle">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-lifecycle"></use></svg>
+              <span>生命周期</span>
+            </button>
+            <button class="sidebar-item" type="button" data-section="analytics">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-analytics"></use></svg>
+              <span>趋势分析</span>
+            </button>
+            <button class="sidebar-item" type="button" data-section="operations">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-factory"></use></svg>
+              <span>设备看板</span>
+            </button>
+            <button class="sidebar-item" type="button" data-section="layout">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-layout"></use></svg>
+              <span>布局示意</span>
+            </button>
+            <button class="sidebar-item" type="button" data-section="rules">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-rule"></use></svg>
+              <span>风险规则</span>
+            </button>
+            <button class="sidebar-item" type="button" data-section="predictive">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-analytics"></use></svg>
+              <span>预测性维护</span>
+            </button>
+            <button class="sidebar-item" type="button" data-section="accounts">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-user"></use></svg>
+              <span>账户权限</span>
+            </button>
+            <button class="sidebar-item" type="button" data-section="audit">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-history"></use></svg>
+              <span>审计日志</span>
+            </button>
+          </div>
+
+          <div class="sidebar-footer">
+            <button class="sidebar-utility" type="button">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-support"></use></svg>
+              <span>Support</span>
+            </button>
+          </div>
+        </aside>
+
+        <div class="content-area">
+          <section class="content-section active" id="section-submission-center">
+            <section class="kpi-grid admin-kpi-grid" id="kpi-grid" aria-label="核心指标"></section>
+
+            <article class="panel table-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>最新员工提交</h2>
+                  <p>管理员审核队列与现场变更记录</p>
+                </div>
+                <button class="section-link" type="button">查看全部</button>
+              </div>
+              <div class="submission-feed" id="submission-feed"></div>
+            </article>
+
+            <article class="panel summary-panel hidden">
+              <div class="section-head compact">
+                <div>
+                  <h2>提交概览</h2>
+                </div>
+              </div>
+              <div class="submission-stats" id="submission-stats"></div>
+            </article>
+          </section>
+
+          <section class="content-section" id="section-worker-performance">
+            <section class="kpi-grid worker-kpi-grid" id="worker-kpi-grid" aria-label="员工绩效核心指标"></section>
+
+            <article class="panel worker-filter-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>绩效筛选</h2>
+                  <p>按年份、月份、班次和员工查看出勤小时、接单数量、维修工时与平均维修效率。</p>
+                </div>
+              </div>
+              <form class="worker-filter-grid" id="worker-filter-form">
+                <label class="form-field" for="worker-year-filter">
+                  <span>年份</span>
+                  <select id="worker-year-filter" name="year"></select>
+                </label>
+                <label class="form-field" for="worker-month-filter">
+                  <span>月份</span>
+                  <select id="worker-month-filter" name="month"></select>
+                </label>
+                <label class="form-field" for="worker-shift-filter">
+                  <span>班次</span>
+                  <select id="worker-shift-filter" name="shift"></select>
+                </label>
+                <label class="form-field" for="worker-employee-filter">
+                  <span>员工</span>
+                  <select id="worker-employee-filter" name="employeeKey"></select>
+                </label>
+                <div class="worker-filter-actions">
+                  <button class="primary-btn" type="submit">应用筛选</button>
+                  <button class="ghost-btn compact-btn" id="worker-filter-reset" type="button">重置</button>
+                </div>
+              </form>
+            </article>
+
+            <section class="worker-info-grid">
+              <article class="panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>数据质量</h2>
+                    <p>识别当前筛选下的缺失、无法计算和异常口径。</p>
+                  </div>
+                </div>
+                <div class="worker-quality-grid" id="worker-quality-grid"></div>
+                <div class="worker-quality-detail" id="worker-quality-detail"></div>
+              </article>
+
+              <article class="panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>指标口径</h2>
+                    <p>说明当前页面的计算公式和排名使用规则。</p>
+                  </div>
+                </div>
+                <div class="worker-formula-grid" id="worker-formula-grid"></div>
+              </article>
+            </section>
+
+            <article class="panel worker-raw-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>月度明细</h2>
+                  <p>每行对应一个班次、员工和月份。</p>
+                </div>
+              </div>
+              <div class="submission-feed" id="worker-raw-table"></div>
+            </article>
+
+            <section class="worker-layout">
+              <article class="panel table-panel worker-list-panel">
+                  <div class="section-head compact">
+                  <div>
+                    <h2>员工绩效列表</h2>
+                    <p>点击员工查看趋势。</p>
+                  </div>
+                </div>
+                <div class="submission-feed" id="worker-table"></div>
+              </article>
+
+              <aside class="panel worker-top-panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>Top 5 分析</h2>
+                  </div>
+                </div>
+                <div class="worker-top-grid" id="worker-top-grid"></div>
+              </aside>
+            </section>
+
+            <article class="panel worker-shift-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>班组对比</h2>
+                  <p>对比各班次出勤、接单、维修工时和平均维修效率。</p>
+                </div>
+              </div>
+              <div class="worker-alert-list" id="worker-shift-list"></div>
+            </article>
+
+            <article class="panel worker-detail-panel" id="worker-detail-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>员工个人详情</h2>
+                  <p id="worker-detail-subtitle">从列表中选择员工后查看各月趋势和均值对比。</p>
+                </div>
+              </div>
+              <div id="worker-detail-content"></div>
+            </article>
+          </section>
+
+          <section class="content-section" id="section-lifecycle">
+            <section class="panel">
+              <div class="section-head">
+                <div>
+                  <h2>设备生命周期总览</h2>
+                  <p>按引入、安装、量产、维护、升级、退役统一管理生命周期状态。</p>
+                </div>
+              </div>
+              <div class="lifecycle-grid">
+                <div class="lifecycle-rail" id="lifecycle-rail"></div>
+                <div class="radar-card">
+                  <div class="mini-title">阶段分布占比</div>
+                  <div class="stage-ring" id="stage-ring"></div>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <section class="content-section" id="section-analytics">
+            <section class="kpi-grid analytics-kpi-grid" id="analytics-kpi-grid"></section>
+
+            <section class="analytics-main-grid">
+              <article class="panel chart-panel chart-panel-primary">
+                <div class="section-head compact">
+                  <div>
+                    <h2>OEE Trend Analysis</h2>
+                  </div>
+                  <div class="chart-legend-inline">
+                    <span><i class="legend-dot availability"></i>Actual OEE</span>
+                    <span><i class="legend-dot target"></i>Target (90%)</span>
+                  </div>
+                </div>
+                <div class="chart-panel" id="trend-chart"></div>
+              </article>
+
+              <article class="panel chart-panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>Downtime Reason Breakdown</h2>
+                  </div>
+                </div>
+                <div class="cause-stack" id="cause-stack"></div>
+                <div class="cause-list" id="cause-list"></div>
+              </article>
+            </section>
+
+            <article class="panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>Shift Performance Comparison (Parts/Hr)</h2>
+                </div>
+              </div>
+              <div class="comparison-chart" id="comparison-chart"></div>
+            </article>
+
+            <article class="panel table-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>Detailed Efficiency Losses Log</h2>
+                </div>
+                <button class="section-link" type="button">查看完整日志</button>
+              </div>
+              <div class="loss-log" id="loss-log"></div>
+            </article>
+          </section>
+
+          <section class="content-section" id="section-operations">
+            <section class="equipment-layout">
+              <article class="panel equipment-panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>Active Machinery</h2>
+                    <p>实时监控产线关键设备运行状态与资料完备性。</p>
+                  </div>
+                </div>
+                <div class="filter-row" id="stage-filters"></div>
+                <div class="equipment-grid" id="equipment-grid"></div>
+              </article>
+
+              <aside class="side-stack">
+                <article class="panel">
+                  <div class="section-head compact">
+                    <div>
+                      <h2>High-Risk Items</h2>
+                    </div>
+                  </div>
+                  <div class="risk-list" id="risk-list"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="section-head compact">
+                    <div>
+                      <h2>Critical Spares Inventory</h2>
+                    </div>
+                  </div>
+                  <div class="spare-list" id="spare-list"></div>
+                </article>
+              </aside>
+            </section>
+          </section>
+
+          <section class="content-section" id="section-layout">
+            <section class="layout-section">
+              <article class="panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>产线工位布局示意</h2>
+                    <p>映射总装段与测试段的工位关系与当前状态。</p>
+                  </div>
+                </div>
+                <div class="layout-map" id="layout-map"></div>
+              </article>
+
+              <article class="panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>资料与布局完备性</h2>
+                  </div>
+                </div>
+                <div class="readiness-grid" id="readiness-grid"></div>
+                <div class="gap-list" id="gap-list"></div>
+              </article>
+            </section>
+          </section>
+
+          <section class="content-section" id="section-rules">
+            <section class="panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>红黄绿风险规则</h2>
+                  <p>通过 OEE、资料状态、备件库存与保养窗口联合判定风险等级。</p>
+                </div>
+              </div>
+              <div class="rule-grid" id="rule-grid"></div>
+            </section>
+          </section>
+
+          <section class="content-section" id="section-predictive">
+            <section class="kpi-grid analytics-kpi-grid" id="predictive-kpi-grid"></section>
+
+            <section class="predictive-layout">
+              <article class="panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>预测性维护建议</h2>
+                    <p>基于设备运行指标、故障特征与阈值规则，预测未来维护优先级与停机风险。</p>
+                  </div>
+                </div>
+                <div class="predictive-cards" id="predictive-cards"></div>
+              </article>
+
+              <aside class="side-stack">
+                <article class="panel">
+                  <div class="section-head compact">
+                    <div>
+                      <h2>建议方法</h2>
+                    </div>
+                  </div>
+                  <div class="predictive-methods" id="predictive-methods"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="section-head compact">
+                    <div>
+                      <h2>维护准备清单</h2>
+                    </div>
+                  </div>
+                  <div class="predictive-actions" id="predictive-actions"></div>
+                </article>
+              </aside>
+            </section>
+
+            <article class="panel table-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>设备预测维护优先级</h2>
+                  <p>按照预测故障概率、预计停机损失和建议维护窗口排序。</p>
+                </div>
+              </div>
+              <div class="loss-log" id="predictive-table"></div>
+            </article>
+          </section>
+
+          <section class="content-section" id="section-accounts">
+            <section class="admin-management-grid">
+              <article class="panel form-panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>创建普通账号</h2>
+                    <p>管理员可创建编辑账号和只读账号，并统一管理权限。</p>
+                  </div>
+                </div>
+
+                <form class="submission-form" id="user-create-form">
+                  <div class="form-grid">
+                    <label class="form-field" for="account-display-name">
+                      <span>姓名</span>
+                      <input id="account-display-name" name="displayName" type="text" placeholder="例如：王敏" required />
+                    </label>
+
+                    <label class="form-field" for="account-username">
+                      <span>账号</span>
+                      <input id="account-username" name="username" type="text" placeholder="例如：editor03" required />
+                    </label>
+                  </div>
+
+                  <div class="form-grid">
+                    <label class="form-field" for="account-password">
+                      <span>初始密码</span>
+                      <input id="account-password" name="password" type="password" placeholder="请输入初始密码" required />
+                    </label>
+
+                    <label class="form-field" for="account-role">
+                      <span>账号权限</span>
+                      <select id="account-role" name="role" required>
+                        <option value="editor">编辑账号</option>
+                        <option value="viewer">只读账号</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="form-actions">
+                    <button class="primary-btn" type="submit">创建账号</button>
+                    <span class="form-feedback hidden" id="user-create-feedback"></span>
+                  </div>
+                </form>
+              </article>
+
+              <article class="panel table-panel">
+                <div class="section-head compact">
+                  <div>
+                    <h2>账号权限清单</h2>
+                    <p>可查看全部账号，并切换普通账号的编辑 / 只读权限。</p>
+                  </div>
+                </div>
+                <div class="submission-feed" id="user-admin-table"></div>
+              </article>
+            </section>
+          </section>
+
+          <section class="content-section" id="section-audit">
+            <section class="panel table-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>提交与修改审计日志</h2>
+                  <p>记录每一次建号、改权限、提交、审核与主数据修改。</p>
+                </div>
+              </div>
+              <div class="submission-feed" id="audit-log-table"></div>
+            </section>
+          </section>
+        </div>
+      </main>
+
+      <main class="workspace hidden" id="employee-view">
+        <aside class="sidebar panel">
+          <div class="sidebar-brand">
+            <img class="sidebar-logo" src="assets/bosch-logo.svg" alt="Bosch logo" />
+            <div class="sidebar-brand-copy">
+              <strong>BOSCH</strong>
+              <span>Workspace Console</span>
+            </div>
+          </div>
+
+          <div class="sidebar-menu" id="employee-sidebar">
+            <button class="sidebar-item active" type="button" data-section="employee-overview">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-dashboard"></use></svg>
+              <span>设备总览</span>
+            </button>
+            <button class="sidebar-item" id="employee-submit-nav" type="button" data-section="employee-submit">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-edit"></use></svg>
+              <span>数据提交</span>
+            </button>
+            <button class="sidebar-item" id="employee-history-nav" type="button" data-section="employee-history">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-history"></use></svg>
+              <span>我的记录</span>
+            </button>
+          </div>
+
+          <div class="sidebar-footer">
+            <button class="sidebar-utility" type="button">
+              <svg class="ui-icon nav-icon" aria-hidden="true"><use href="#icon-support"></use></svg>
+              <span>Support</span>
+            </button>
+          </div>
+        </aside>
+
+        <div class="content-area">
+          <section class="content-section active" id="section-employee-overview">
+            <section class="kpi-grid admin-kpi-grid" id="employee-overview-stats"></section>
+
+            <section class="panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>设备状态总览</h2>
+                  <p>普通账号可查看当前设备状态、风险分布与资料完备性。</p>
+                </div>
+              </div>
+              <div class="equipment-grid" id="employee-equipment-grid"></div>
+            </section>
+          </section>
+
+          <section class="content-section" id="section-employee-submit">
+            <section class="panel form-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>数据提交</h2>
+                  <p>编辑账号可提交设备数量、状态、备件、图纸与异常说明。</p>
+                </div>
+              </div>
+
+              <form class="submission-form" id="submission-form">
+                <label class="form-field" for="submission-equipment">
+                  <span>设备 / 工位</span>
+                  <select name="equipmentId" id="submission-equipment" required></select>
+                </label>
+
+                <label class="form-field" for="change-type">
+                  <span>提交类型</span>
+                  <select name="changeType" id="change-type" required>
+                    <option value="equipment_quantity">设备数量变化</option>
+                    <option value="status_update">设备状态更新</option>
+                    <option value="spare_update">备件库存变化</option>
+                    <option value="document_update">图纸 / Layout 更新</option>
+                    <option value="issue_note">异常备注</option>
+                  </select>
+                </label>
+
+                <div class="form-grid">
+                  <label class="form-field" id="quantity-field" for="quantity-delta">
+                    <span>变化值</span>
+                    <input
+                      id="quantity-delta"
+                      name="quantityDelta"
+                      type="number"
+                      step="1"
+                      placeholder="例如：+1 或 -2"
+                    />
+                  </label>
+
+                  <label class="form-field hidden" id="status-field" for="new-status">
+                    <span>新状态</span>
+                    <select name="newStatus" id="new-status">
+                      <option value="">请选择</option>
+                      <option value="stable">稳定运行</option>
+                      <option value="warning">关注中</option>
+                      <option value="critical">高风险</option>
+                      <option value="upgrade">项目中</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label class="form-field" for="submission-note">
+                  <span>备注</span>
+                  <textarea
+                    id="submission-note"
+                    name="note"
+                    rows="5"
+                    placeholder="填写变化原因、现场说明或异常描述"
+                    required
+                  ></textarea>
+                </label>
+
+                <div class="form-actions">
+                  <button class="primary-btn" type="submit">提交数据</button>
+                  <span class="form-feedback hidden" id="submission-feedback"></span>
+                </div>
+              </form>
+            </section>
+          </section>
+
+          <section class="content-section" id="section-employee-history">
+            <section class="panel table-panel">
+              <div class="section-head compact">
+                <div>
+                  <h2>我的提交记录</h2>
+                </div>
+              </div>
+              <div class="submission-feed" id="employee-submissions"></div>
+            </section>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="data/worker-performance-monthly.js"></script>
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

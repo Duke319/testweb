@@ -1,0 +1,26 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.DS_Store
+frontend/dist/
+release/
+archive/
+artifacts/
+output/
+outputs/
+artifacts/outputs/
+*.log
+__pycache__/
+*.pyc
+
+# Private business data is intentionally excluded from the clean repository.
+data/*
+!data/README.md
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.zip
+*.7z
+*.docx
