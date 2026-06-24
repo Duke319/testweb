@@ -2,9 +2,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const outFile = path.resolve(__dirname, "../frontend/public/demo/static-demo-snapshot.js");
+const realDataRoot = process.env.REAL_DATA_ROOT || "";
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const departments = ["TEF31", "TEF32", "TEF33"];
-const certificateTypes = [
+const fallbackCertificateTypes = [
   { code: "DQAQ", name: "低压电气安全操作证" },
   { code: "JXWX", name: "机械维修技能证" },
   { code: "PLCTS", name: "PLC调试与故障诊断证" },
@@ -15,6 +16,24 @@ const certificateTypes = [
 const surnames = ["王", "李", "张", "刘", "陈", "杨", "赵", "黄", "周", "吴", "徐", "孙", "胡", "朱", "高", "林", "何", "郭", "马", "罗", "梁", "宋", "郑", "谢", "韩"];
 const givenNameFirstChars = ["梓", "宇", "俊", "思", "嘉", "明", "浩", "子", "亦", "文"];
 const givenNameSecondChars = ["轩", "涵", "辰", "琪", "宁", "睿", "航", "然", "杰", "安"];
+
+function readRealJson(relativePath) {
+  if (!realDataRoot) {
+    return null;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(path.join(realDataRoot, relativePath), "utf8"));
+  } catch (error) {
+    console.warn(`Skipping real data source ${relativePath}: ${error.message}`);
+    return null;
+  }
+}
+
+const realCertificateData = readRealJson("data/employee-certificates.json");
+const realNearMissData = readRealJson("data/near-miss-records.json");
+const certificateTypes = Array.isArray(realCertificateData?.certificateTypes) && realCertificateData.certificateTypes.length
+  ? realCertificateData.certificateTypes.map((type) => ({ code: type.code, name: type.name, sourceColumn: type.sourceColumn || type.name }))
+  : fallbackCertificateTypes;
 
 function monthsBetween(startYear, startMonthIndex, endYear, endMonthIndex) {
   const months = [];
@@ -99,6 +118,41 @@ function countCertificateGaps(employeeCount) {
     }
   }
   return count;
+}
+
+function certificateStateLabel(status) {
+  if (status === "expired") return "已过期";
+  if (status === "expiring") return "即将到期";
+  if (status === "missing") return "未登记";
+  return "有效";
+}
+
+function certificateStatusFromExpiry(hasCertificate, expireDate) {
+  if (!hasCertificate) {
+    return "missing";
+  }
+  if (!expireDate) {
+    return "valid";
+  }
+  const expiry = new Date(`${expireDate}T00:00:00.000Z`);
+  if (Number.isNaN(expiry.getTime())) {
+    return "valid";
+  }
+  const reference = new Date("2026-06-24T00:00:00.000Z");
+  const daysUntilExpiry = (expiry.getTime() - reference.getTime()) / (24 * 60 * 60 * 1000);
+  if (daysUntilExpiry < 0) {
+    return "expired";
+  }
+  return daysUntilExpiry <= 90 ? "expiring" : "valid";
+}
+
+function countRealCertificateGaps(certificateData) {
+  if (!Array.isArray(certificateData?.employees)) {
+    return null;
+  }
+  return certificateData.employees.reduce((total, employee) => (
+    total + certificateTypes.filter((type) => !employee.certificates?.[type.code]).length
+  ), 0);
 }
 
 function makeEmployee(index) {
@@ -368,7 +422,7 @@ const summary = {
   totalOvertimeHours: round(sum(rawRecords, "overtimeTotalHours"), 1),
   totalCompositeHours: round(sum(rawRecords, "compositeHours"), 1),
   compositeWarningCount: employees.filter((employee) => employee.compositeRisk !== "ok").length,
-  certificateGapCount: countCertificateGaps(employees.length),
+  certificateGapCount: countRealCertificateGaps(realCertificateData) ?? countCertificateGaps(employees.length),
   mttrMinutes: average(rawRecords, "mttrMinutes"),
   faultResponseMinutes: average(rawRecords, "faultResponseMinutes"),
   nearMissCount: sum(rawRecords, "nearMissCount"),
@@ -396,21 +450,64 @@ const filterOptions = {
   })),
 };
 
-const competenceEmployees = employees.map((employee, employeeIndex) => ({
-  ...employee,
-  certificates: certificateTypes.map((type, certIndex) => {
-    const certificate = certificateStatus(employeeIndex, certIndex);
+function buildMockCompetenceEmployees() {
+  return employees.map((employee, employeeIndex) => ({
+    ...employee,
+    certificates: certificateTypes.map((type, certIndex) => {
+      const certificate = certificateStatus(employeeIndex, certIndex);
+      return {
+        code: type.code,
+        name: type.name,
+        hasCertificate: certificate.hasCertificate,
+        status: certificate.status,
+        stateLabel: certificate.stateLabel,
+        expireDate: certificate.hasCertificate ? `202${6 + (certIndex % 2)}-0${(certIndex % 9) + 1}-28` : "",
+        detail: certificate.hasCertificate ? "模拟证书记录" : "",
+      };
+    }),
+  }));
+}
+
+function buildRealCompetenceEmployees(certificateData) {
+  if (!Array.isArray(certificateData?.employees) || !certificateData.employees.length) {
+    return null;
+  }
+  return certificateData.employees.map((realEmployee, index) => {
+    const department = realEmployee.department || departments[index % departments.length];
+    const employeeNo = `CAP-${String(index + 1).padStart(3, "0")}`;
     return {
-      code: type.code,
-      name: type.name,
-      hasCertificate: certificate.hasCertificate,
-      status: certificate.status,
-      stateLabel: certificate.stateLabel,
-      expireDate: certificate.hasCertificate ? `202${6 + (certIndex % 2)}-0${(certIndex % 9) + 1}-28` : "",
-      detail: certificate.hasCertificate ? "模拟证书记录" : "",
+      employeeKey: `CAPABILITY::${department}::${String(index + 1).padStart(3, "0")}`,
+      employeeNo,
+      employeeName: makeChineseName(index),
+      department,
+      businessArea: "能力台账",
+      plant: "匿名工厂",
+      workshop: `${department}能力班组`,
+      shift: department,
+      positionTitle: "设备维修技师",
+      jobTitle: "设备维修技师",
+      role: "设备维修",
+      orgUnit: realEmployee.orgUnit || "",
+      listNumber: realEmployee.listNumber || "",
+      certificates: certificateTypes.map((type) => {
+        const hasCertificate = Boolean(realEmployee.certificates?.[type.code]);
+        const expireDate = hasCertificate ? realEmployee.expireDates?.[type.code] || "" : "";
+        const status = certificateStatusFromExpiry(hasCertificate, expireDate);
+        return {
+          code: type.code,
+          name: type.name,
+          hasCertificate,
+          status,
+          stateLabel: certificateStateLabel(status),
+          expireDate,
+          detail: hasCertificate ? realEmployee.certificateDetails?.[type.code] || "真实能力台账登记" : "",
+        };
+      }),
     };
-  }),
-}));
+  });
+}
+
+const competenceEmployees = buildRealCompetenceEmployees(realCertificateData) || buildMockCompetenceEmployees();
 
 const repairTimeAnomalies = rawRecords
   .filter((row, index) => index % 47 === 0)
@@ -460,40 +557,112 @@ const gapChecklist = {
 const sourceCoverage = {
   servingSource: "mock",
   ledgers: [
-    { id: "mock-performance", name: "月度绩效模拟数据", source: "生成的模拟数据", status: "Review", note: "不包含真实记录" },
-    { id: "mock-certificate", name: "证书矩阵模拟数据", source: "生成的模拟数据", status: "Review", note: "不包含真实记录" },
-    { id: "mock-improvement", name: "改善记录模拟数据", source: "生成的模拟数据", status: "Review", note: "不包含真实记录" },
+    { id: "mock-performance", name: "月度绩效模拟数据", source: "生成的模拟数据", status: "Review", note: "绩效数据为合成模拟记录" },
+    { id: "anonymous-certificate", name: "能力证书匿名数据", source: realCertificateData ? "真实证书台账匿名化" : "生成的模拟数据", status: "Review", note: "姓名和工号已替换" },
+    { id: "anonymous-safety", name: "安全记录匿名数据", source: realNearMissData ? "真实 near miss 台账匿名化" : "生成的模拟数据", status: "Review", note: "人员字段已替换" },
   ],
   totals: { ledgers: 3, records: rawRecords.length },
 };
 
-const safetyRecords = employees
-  .filter((employee) => employee.riskBias >= 3)
-  .slice(0, 9)
-  .map((employee, index) => {
-    const incidentMonth = months[(6 + index * 3) % months.length];
-    return {
-      id: `SAFE-${index + 1}`,
-      employeeKey: employee.employeeKey,
-      key: employee.employeeKey,
-      employeeName: employee.employeeName,
-      employeeNo: employee.employeeNo,
-      department: employee.department,
-      month: incidentMonth.label,
-      year: incidentMonth.year,
-      incidentType: "模拟安全事件",
-    };
-  });
+function monthLabelFromDate(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})/);
+  if (!match) {
+    return "";
+  }
+  return `${match[1]} ${monthNames[Number(match[2]) - 1]}`;
+}
 
-const safetyEmployees = safetyRecords.map((record, index) => ({
-  key: record.employeeKey,
-  employeeKey: record.employeeKey,
-  employeeName: record.employeeName,
-  employeeNo: record.employeeNo,
-  department: record.department,
-  incidentCount: index % 3 === 0 ? 2 : 1,
-  incidentMonths: [record.month, ...(index % 3 === 0 ? [months[(12 + index) % months.length].label] : [])],
-}));
+function buildMockSafetyRecords() {
+  return employees
+    .filter((employee) => employee.riskBias >= 3)
+    .slice(0, 9)
+    .map((employee, index) => {
+      const incidentMonth = months[(6 + index * 3) % months.length];
+      return {
+        id: `SAFE-${index + 1}`,
+        employeeKey: employee.employeeKey,
+        key: employee.employeeKey,
+        employeeName: employee.employeeName,
+        employeeNo: employee.employeeNo,
+        department: employee.department,
+        month: incidentMonth.label,
+        year: incidentMonth.year,
+        incidentType: "模拟安全事件",
+        projectTitle: "模拟安全事件记录",
+        station: `${employee.department}维修区域`,
+        incidentDate: `${incidentMonth.year}-${String(incidentMonth.monthNumber).padStart(2, "0")}-15`,
+        isClosed: index % 3 === 0 ? "否" : "是",
+      };
+    });
+}
+
+function buildRealSafetyRecords(nearMissData) {
+  if (!Array.isArray(nearMissData?.records) || !nearMissData.records.length) {
+    return null;
+  }
+  return nearMissData.records
+    .filter((record) => String(record.projectType || "").toLowerCase().includes("near") || record.improvementType === "near_miss")
+    .filter((record) => record.projectTitle && (record.incidentDate || record.createdDate))
+    .slice(0, 12)
+    .map((record, index) => {
+      const employee = employees[(index * 9 + 3) % employees.length];
+      const incidentDate = record.incidentDate || record.createdDate;
+      const month = monthLabelFromDate(incidentDate) || employee.month || "2026 Mar";
+      const year = String(record.year || incidentDate).slice(0, 4);
+      return {
+        id: `SAFE-REAL-${String(index + 1).padStart(3, "0")}`,
+        sourceId: record.id || record.projectId || "",
+        employeeKey: employee.employeeKey,
+        key: employee.employeeKey,
+        employeeName: employee.employeeName,
+        employeeNo: employee.employeeNo,
+        department: record.department || employee.department,
+        businessArea: record.businessArea || employee.businessArea,
+        plant: record.plant || employee.plant,
+        workshop: record.workshop || employee.workshop,
+        shift: record.shift || employee.shift,
+        month,
+        year,
+        incidentType: "Near Miss",
+        projectTitle: record.projectTitle,
+        lineArea: record.lineArea || "",
+        station: record.station || "",
+        sourceDepartment: record.sourceDepartment || "",
+        incidentDate,
+        closedDate: record.closedDate || "",
+        approved: Boolean(record.approved),
+        approvalStep: record.approvalStep || "",
+        isClosed: record.isClosed || (record.closedDate ? "是" : "否"),
+      };
+    });
+}
+
+function buildSafetyEmployees(records) {
+  const grouped = new Map();
+  records.forEach((record) => {
+    const key = record.employeeKey;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        key,
+        employeeKey: key,
+        employeeName: record.employeeName,
+        employeeNo: record.employeeNo,
+        department: record.department,
+        incidentCount: 0,
+        incidentMonths: [],
+      });
+    }
+    const employee = grouped.get(key);
+    employee.incidentCount += 1;
+    if (record.month && !employee.incidentMonths.includes(record.month)) {
+      employee.incidentMonths.push(record.month);
+    }
+  });
+  return [...grouped.values()];
+}
+
+const safetyRecords = buildRealSafetyRecords(realNearMissData) || buildMockSafetyRecords();
+const safetyEmployees = buildSafetyEmployees(safetyRecords);
 
 function employeeDetail(employee) {
   const rows = rawRecords.filter((row) => row.employeeKey === employee.employeeKey);
@@ -535,7 +704,7 @@ const employeeDetails = Object.fromEntries(employees.map((employee) => [employee
 
 const snapshot = {
   generatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
-  note: "Synthetic mock demo snapshot. No real business, employee, or source-system data is included.",
+  note: "Anonymized demo snapshot. Performance metrics use synthetic data; capability and safety ledgers may use real source structure with names and employee numbers replaced.",
   boss: {
     summary,
     trend,
@@ -576,7 +745,7 @@ const snapshot = {
       totalCriticalCount: authenticityAnomalies.filter((row) => row.severity === "critical").length,
       filteredQuarantinedRecords: authenticityAnomalies.length,
       batchStatus: "publishable",
-      policy: "Mock anomalies only; no real records included",
+      policy: "Public demo snapshot uses anonymized personnel fields.",
     },
     anomalies: authenticityAnomalies,
     importBatches: [{ id: "MOCK-BATCH-001", status: "publishable", recordCount: rawRecords.length, validRecordCount: rawRecords.length, quarantinedRecordCount: authenticityAnomalies.length }],

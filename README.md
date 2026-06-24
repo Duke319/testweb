@@ -1,6 +1,6 @@
 # 设备周期管理可视化平台
 
-> Clean public release: this repository intentionally excludes real business data, raw Excel/zip files, generated reports, and local build artifacts. The bundled static demo snapshot contains synthetic mock data only.
+> Clean public release: this repository intentionally excludes raw Excel/zip files, generated reports, local build artifacts, and real personnel identities. The bundled static demo snapshot uses synthetic performance metrics plus anonymized capability/safety demo records.
 
 一个面向博世杭州电动工具工厂电钻产线的设备全生命周期可视化原型项目，用于把设备引入、运行、维护、备件、图纸、 layout 与生产效率等数据放到同一张业务画布中，帮助团队围绕 OEE 提升建立管理驾驶舱。
 
