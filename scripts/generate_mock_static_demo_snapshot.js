@@ -1,0 +1,501 @@
+const fs = require("node:fs");
+const path = require("node:path");
+
+const outFile = path.resolve(__dirname, "../frontend/public/demo/static-demo-snapshot.js");
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const departments = ["TEF31", "TEF32", "TEF33"];
+const certificateTypes = [
+  { code: "ELEC", name: "Electrical Safety" },
+  { code: "MECH", name: "Mechanical Maintenance" },
+  { code: "PLC", name: "PLC Debugging" },
+  { code: "LIFT", name: "Lifting Operation" },
+];
+
+function monthsBetween(startYear, startMonthIndex, endYear, endMonthIndex) {
+  const months = [];
+  for (let year = startYear; year <= endYear; year += 1) {
+    const first = year === startYear ? startMonthIndex : 0;
+    const last = year === endYear ? endMonthIndex : 11;
+    for (let month = first; month <= last; month += 1) {
+      months.push({ label: `${year} ${monthNames[month]}`, year: String(year), monthNumber: month + 1, index: year * 100 + month + 1 });
+    }
+  }
+  return months;
+}
+
+function round(value, digits = 1) {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+function sum(rows, field) {
+  return rows.reduce((total, row) => total + (Number(row[field]) || 0), 0);
+}
+
+function average(rows, field) {
+  const values = rows.map((row) => Number(row[field])).filter((value) => Number.isFinite(value) && value > 0);
+  return values.length ? round(values.reduce((total, value) => total + value, 0) / values.length, 1) : null;
+}
+
+function makeEmployee(index) {
+  const department = departments[index % departments.length];
+  const no = `DEMO-${String(index + 1).padStart(3, "0")}`;
+  return {
+    employeeKey: `DEMO::${department}::${String(index + 1).padStart(3, "0")}`,
+    employeeNo: no,
+    employeeName: `Demo Tech ${String(index + 1).padStart(2, "0")}`,
+    department,
+    businessArea: "DEMO",
+    plant: "Demo Plant",
+    workshop: "Demo Workshop",
+    shift: `${department}-${(index % 2) + 1}`,
+    positionTitle: index % 3 === 0 ? "Senior Technician" : "Maintenance Technician",
+    jobTitle: "Technician",
+    role: "Maintenance",
+    piTargetRate: 0.72 + (index % 3) * 0.03,
+    piTargetLabel: `${department} Target`,
+  };
+}
+
+const months = monthsBetween(2024, 0, 2026, 3);
+const employeesBase = Array.from({ length: 12 }, (_, index) => makeEmployee(index));
+const rawRecords = [];
+const improvementRecords = [];
+
+employeesBase.forEach((employee, employeeIndex) => {
+  months.forEach((month, monthIndex) => {
+    const season = Math.sin((monthIndex + employeeIndex) / 3);
+    const attendanceHours = round(150 + ((employeeIndex * 7 + monthIndex * 5) % 36) + season * 4, 1);
+    const pm01Hours = round(attendanceHours * (0.24 + ((employeeIndex + monthIndex) % 5) * 0.015), 1);
+    const pm03Hours = round(attendanceHours * (0.15 + ((employeeIndex * 2 + monthIndex) % 4) * 0.012), 1);
+    const transferHours = round(((employeeIndex + monthIndex) % 4) * 3.5, 1);
+    const repairHours = round(pm01Hours + pm03Hours + transferHours * 0.5, 1);
+    const piHours = pm01Hours + pm03Hours + transferHours;
+    const orderCount = Math.round(62 + employeeIndex * 5 + monthIndex * 1.5 + season * 8);
+    const overtime15Hours = round(((employeeIndex + monthIndex) % 5) * 2.5, 1);
+    const overtime20Hours = round(((employeeIndex * 2 + monthIndex) % 4) * 1.5, 1);
+    const overtime30Hours = round(((employeeIndex + monthIndex) % 11 === 0) ? 6 : 0, 1);
+    const annualLeaveHours = round(((monthIndex + employeeIndex) % 9 === 0) ? 8 : 0, 1);
+    const sickLeaveHours = round(((monthIndex + employeeIndex) % 13 === 0) ? 4 : 0, 1);
+    const leaveHours = annualLeaveHours + sickLeaveHours;
+    const overtimeTotalHours = overtime15Hours + overtime20Hours + overtime30Hours;
+    const compositeHours = round(overtimeTotalHours - leaveHours, 1);
+    const mttrMinutes = round(36 + ((employeeIndex * 11 + monthIndex * 7) % 92) + Math.max(season, 0) * 10, 1);
+    const nearMissCount = (employeeIndex + monthIndex) % 9 === 0 ? 1 : 0;
+    const pdcaCount = (employeeIndex + monthIndex) % 13 === 0 ? 1 : 0;
+    const kaizenCount = (employeeIndex + monthIndex) % 5 === 0 ? 1 : 0;
+    const pdcaBenefit = pdcaCount ? 12000 + employeeIndex * 500 : 0;
+    const kaizenBenefit = kaizenCount ? 1800 + monthIndex * 50 : 0;
+    const record = {
+      id: `${employee.employeeKey}::${month.label}`,
+      sourceId: `MOCK-${employeeIndex + 1}-${month.index}`,
+      ...employee,
+      month: month.label,
+      year: month.year,
+      monthNumber: month.monthNumber,
+      attendanceHours,
+      orderCount,
+      repairHours,
+      repairEfficiency: round(piHours / attendanceHours, 4),
+      orderEfficiency: round(orderCount / attendanceHours, 3),
+      overtime15Hours,
+      overtime20Hours,
+      overtime30Hours,
+      overtimeTotalHours,
+      holidayOvertimeHours: overtime30Hours,
+      leaveHours,
+      annualLeaveHours,
+      sickLeaveHours,
+      compositeHours,
+      pm01Hours,
+      pm03Hours,
+      transferHours,
+      piHours: round(piHours, 1),
+      repairTimeHours: round(repairHours * 0.95, 1),
+      mttrMinutes,
+      faultResponseMinutes: round(12 + ((employeeIndex + monthIndex) % 20), 1),
+      nearMissCount,
+      nearMissBenefit: 0,
+      pdcaCount,
+      pdcaBenefit,
+      pdcaAwardCount: pdcaCount && employeeIndex % 4 === 0 ? 1 : 0,
+      kaizenCount,
+      kaizenBenefit,
+      kaizenAwardCount: kaizenCount && employeeIndex % 5 === 0 ? 1 : 0,
+      validationStatus: "valid",
+      anomalyReason: "",
+      excludedFromPi: false,
+      provenance: {
+        importBatchId: "MOCK-BATCH-001",
+        sourceFile: "mock-static-demo",
+        sourceSheet: "generated",
+        sourceRow: employeeIndex * months.length + monthIndex + 2,
+        sourceField: "",
+        rawValue: null,
+        parsedValue: null,
+      },
+    };
+    rawRecords.push(record);
+
+    if (pdcaCount || kaizenCount || nearMissCount) {
+      improvementRecords.push({
+        id: `IMP-${employeeIndex + 1}-${month.index}`,
+        projectId: `IMP-${employeeIndex + 1}-${month.index}`,
+        projectTitle: `${pdcaCount ? "PDCA" : kaizenCount ? "Kaizen" : "Near miss"} demo action ${employeeIndex + 1}`,
+        projectType: pdcaCount ? "PDCA" : kaizenCount ? "Kaizen" : "Near miss",
+        improvementType: pdcaCount ? "pdca" : kaizenCount ? "kaizen" : "nearMiss",
+        employeeNo: employee.employeeNo,
+        employeeName: employee.employeeName,
+        employeeKey: employee.employeeKey,
+        businessArea: employee.businessArea,
+        plant: employee.plant,
+        department: employee.department,
+        sourceDepartment: employee.department,
+        workshop: employee.workshop,
+        shift: employee.shift,
+        createdDate: `${month.year}-${String(month.monthNumber).padStart(2, "0")}-15`,
+        month: month.label,
+        year: month.year,
+        quantity: 1,
+        benefitAmount: pdcaBenefit + kaizenBenefit,
+        pdcaAwardCount: pdcaCount && employeeIndex % 4 === 0 ? 1 : 0,
+        kaizenAwardCount: kaizenCount && employeeIndex % 5 === 0 ? 1 : 0,
+        approvalStep: "9",
+      });
+    }
+  });
+});
+
+function aggregateEmployee(employee, rank) {
+  const rows = rawRecords.filter((row) => row.employeeKey === employee.employeeKey);
+  const attendanceHours = sum(rows, "attendanceHours");
+  const repairHours = sum(rows, "repairHours");
+  const pm01Hours = sum(rows, "pm01Hours");
+  const pm03Hours = sum(rows, "pm03Hours");
+  const transferHours = sum(rows, "transferHours");
+  const orderCount = sum(rows, "orderCount");
+  const overtimeTotalHours = sum(rows, "overtimeTotalHours");
+  const compositeHours = sum(rows, "compositeHours");
+  const piHours = pm01Hours + pm03Hours + transferHours;
+  const annualCompositeHours = Math.max(0, compositeHours + 160 + rank * 12);
+  return {
+    ...employee,
+    month: "2026 Apr",
+    year: "2026",
+    selectedPeriod: "2024 Jan - 2026 Apr",
+    attendanceHours: round(attendanceHours, 1),
+    repairHours: round(repairHours, 1),
+    pm01Hours: round(pm01Hours, 1),
+    pm03Hours: round(pm03Hours, 1),
+    transferHours: round(transferHours, 1),
+    piHours: round(piHours, 1),
+    orderCount,
+    repairEfficiency: round(piHours / attendanceHours, 4),
+    orderEfficiency: round(orderCount / attendanceHours, 3),
+    overtime15Hours: round(sum(rows, "overtime15Hours"), 1),
+    overtime20Hours: round(sum(rows, "overtime20Hours"), 1),
+    overtime30Hours: round(sum(rows, "overtime30Hours"), 1),
+    overtimeTotalHours: round(overtimeTotalHours, 1),
+    annualLeaveHours: round(sum(rows, "annualLeaveHours"), 1),
+    sickLeaveHours: round(sum(rows, "sickLeaveHours"), 1),
+    leaveHours: round(sum(rows, "leaveHours"), 1),
+    compositeHours: round(compositeHours, 1),
+    annualCompositeHours: round(annualCompositeHours, 1),
+    compositeRisk: annualCompositeHours > 432 ? "over" : annualCompositeHours > 360 ? "warning" : "ok",
+    mttrMinutes: average(rows, "mttrMinutes"),
+    faultResponseMinutes: average(rows, "faultResponseMinutes"),
+    nearMissCount: sum(rows, "nearMissCount"),
+    nearMissBenefit: 0,
+    pdcaCount: sum(rows, "pdcaCount"),
+    pdcaBenefit: sum(rows, "pdcaBenefit"),
+    pdcaAwardCount: sum(rows, "pdcaAwardCount"),
+    kaizenCount: sum(rows, "kaizenCount"),
+    kaizenBenefit: sum(rows, "kaizenBenefit"),
+    kaizenAwardCount: sum(rows, "kaizenAwardCount"),
+    performanceScore: round(70 + rank * 1.8, 1),
+    rank,
+    repairHoursShare: round((repairHours / sum(rawRecords, "repairHours")) * 100, 1),
+    monthCount: rows.length,
+  };
+}
+
+const employees = employeesBase
+  .map((employee, index) => aggregateEmployee(employee, index + 1))
+  .sort((left, right) => right.repairEfficiency - left.repairEfficiency)
+  .map((employee, index) => ({ ...employee, rank: index + 1 }));
+
+function aggregateMonth(month) {
+  const rows = rawRecords.filter((row) => row.month === month.label);
+  const attendanceHours = sum(rows, "attendanceHours");
+  const pm01Hours = sum(rows, "pm01Hours");
+  const pm03Hours = sum(rows, "pm03Hours");
+  const transferHours = sum(rows, "transferHours");
+  const piHours = pm01Hours + pm03Hours + transferHours;
+  return {
+    month: month.label,
+    year: month.year,
+    attendanceHours: round(attendanceHours, 1),
+    orderCount: sum(rows, "orderCount"),
+    repairHours: round(sum(rows, "repairHours"), 1),
+    repairEfficiency: round(piHours / attendanceHours, 4),
+    allRecordRepairEfficiency: round(piHours / attendanceHours, 4),
+    averageBasisAttendanceHours: round(attendanceHours, 1),
+    averageBasisPiHours: round(piHours, 1),
+    averageBasisRepairEfficiency: round(piHours / attendanceHours, 4),
+    averageExcludedEmployeeCount: 0,
+    overtime15Hours: round(sum(rows, "overtime15Hours"), 1),
+    overtime20Hours: round(sum(rows, "overtime20Hours"), 1),
+    overtime30Hours: round(sum(rows, "overtime30Hours"), 1),
+    overtimeTotalHours: round(sum(rows, "overtimeTotalHours"), 1),
+    leaveHours: round(sum(rows, "leaveHours"), 1),
+    annualLeaveHours: round(sum(rows, "annualLeaveHours"), 1),
+    sickLeaveHours: round(sum(rows, "sickLeaveHours"), 1),
+    compositeHours: round(sum(rows, "compositeHours"), 1),
+    pm01Hours: round(pm01Hours, 1),
+    pm03Hours: round(pm03Hours, 1),
+    transferHours: round(transferHours, 1),
+    mttrMinutes: average(rows, "mttrMinutes"),
+    faultResponseMinutes: average(rows, "faultResponseMinutes"),
+    nearMissCount: sum(rows, "nearMissCount"),
+    nearMissBenefit: 0,
+    pdcaCount: sum(rows, "pdcaCount"),
+    pdcaBenefit: sum(rows, "pdcaBenefit"),
+    pdcaAwardCount: sum(rows, "pdcaAwardCount"),
+    kaizenCount: sum(rows, "kaizenCount"),
+    kaizenBenefit: sum(rows, "kaizenBenefit"),
+    kaizenAwardCount: sum(rows, "kaizenAwardCount"),
+  };
+}
+
+const trend = months.map(aggregateMonth);
+const summary = {
+  source: "mock",
+  employeeCount: employees.length,
+  departmentCount: departments.length,
+  businessAreaCount: 1,
+  plantCount: 1,
+  workshopCount: 1,
+  shiftCount: 6,
+  totalAttendanceHours: round(sum(rawRecords, "attendanceHours"), 1),
+  totalRepairHours: round(sum(rawRecords, "repairHours"), 1),
+  totalOrderCount: sum(rawRecords, "orderCount"),
+  avgRepairEfficiency: round((sum(rawRecords, "pm01Hours") + sum(rawRecords, "pm03Hours") + sum(rawRecords, "transferHours")) / sum(rawRecords, "attendanceHours"), 4),
+  totalOvertimeHours: round(sum(rawRecords, "overtimeTotalHours"), 1),
+  totalCompositeHours: round(sum(rawRecords, "compositeHours"), 1),
+  compositeWarningCount: employees.filter((employee) => employee.compositeRisk !== "ok").length,
+  certificateGapCount: 14,
+  mttrMinutes: average(rawRecords, "mttrMinutes"),
+  faultResponseMinutes: average(rawRecords, "faultResponseMinutes"),
+  nearMissCount: sum(rawRecords, "nearMissCount"),
+  nearMissBenefit: 0,
+  pdcaCount: sum(rawRecords, "pdcaCount"),
+  pdcaBenefit: sum(rawRecords, "pdcaBenefit"),
+  pdcaAwardCount: sum(rawRecords, "pdcaAwardCount"),
+  kaizenCount: sum(rawRecords, "kaizenCount"),
+  kaizenBenefit: sum(rawRecords, "kaizenBenefit"),
+  kaizenAwardCount: sum(rawRecords, "kaizenAwardCount"),
+};
+
+const filterOptions = {
+  years: ["2024", "2025", "2026"],
+  months: months.map((month) => month.label),
+  businessAreas: ["DEMO"],
+  departments,
+  workshops: ["Demo Workshop"],
+  shifts: [...new Set(employees.map((employee) => employee.shift))],
+  employees: employees.map((employee) => ({
+    employeeKey: employee.employeeKey,
+    employeeName: employee.employeeName,
+    employeeNo: employee.employeeNo,
+    department: employee.department,
+  })),
+};
+
+const competenceEmployees = employees.map((employee, employeeIndex) => ({
+  ...employee,
+  certificates: certificateTypes.map((type, certIndex) => {
+    const state = (employeeIndex + certIndex) % 4;
+    const hasCertificate = state !== 3;
+    return {
+      code: type.code,
+      name: type.name,
+      hasCertificate,
+      status: !hasCertificate ? "missing" : state === 2 ? "expiring" : "valid",
+      stateLabel: !hasCertificate ? "未登记" : state === 2 ? "即将到期" : "有效",
+      expireDate: hasCertificate ? `202${6 + (certIndex % 2)}-0${(certIndex % 9) + 1}-28` : "",
+      detail: hasCertificate ? "mock" : "",
+    };
+  }),
+}));
+
+const repairTimeAnomalies = rawRecords
+  .filter((row, index) => index % 47 === 0)
+  .map((row, index) => ({
+    id: `RTA-${index + 1}`,
+    employeeKey: row.employeeKey,
+    employeeName: row.employeeName,
+    employeeNo: row.employeeNo,
+    department: row.department,
+    businessArea: row.businessArea,
+    month: row.month,
+    year: row.year,
+    recordDate: `${row.year}-${String(row.monthNumber).padStart(2, "0")}-18`,
+    repairTimeMinutes: 320 + index * 45,
+    valueStream: "Demo Line",
+    productionLine: "Demo Cell",
+    equipmentName: `Demo Asset ${index + 1}`,
+  }));
+
+const authenticityAnomalies = rawRecords
+  .filter((row, index) => index % 61 === 0)
+  .map((row, index) => ({
+    id: `ANOM-${index + 1}`,
+    employeeKey: row.employeeKey,
+    employeeName: row.employeeName,
+    employeeNo: row.employeeNo,
+    department: row.department,
+    businessArea: row.businessArea,
+    month: row.month,
+    year: row.year,
+    category: index % 2 === 0 ? "数据真实性" : "维修响应",
+    type: index % 2 === 0 ? "zero_attendance_with_work" : "repair_time_over_threshold",
+    severity: index % 3 === 0 ? "critical" : "major",
+    reason: "Mock anomaly for demo review",
+    sourceFile: "mock-static-demo",
+    sourceRow: index + 2,
+  }));
+
+const gapChecklist = {
+  rows: [
+    { category: "缺失", module: "员工与组织", item: "HR 正式员工主数据", need: "接入正式 HR 主数据", sourceStatus: "mock placeholder", severity: "critical" },
+    { category: "待确认", module: "工单结构", item: "PM01/PM03 拆分", need: "补充正式工单 PM 类型", sourceStatus: "mock placeholder", severity: "major" },
+    { category: "缺失", module: "安全", item: "Near miss 正式来源", need: "接入 HSE 台账", sourceStatus: "mock placeholder", severity: "major" },
+  ],
+};
+
+const sourceCoverage = {
+  servingSource: "mock",
+  ledgers: [
+    { id: "mock-performance", name: "Performance monthly", source: "Generated mock", status: "Review", note: "No real records included" },
+    { id: "mock-certificate", name: "Certificate matrix", source: "Generated mock", status: "Review", note: "No real records included" },
+    { id: "mock-improvement", name: "Improvement records", source: "Generated mock", status: "Review", note: "No real records included" },
+  ],
+  totals: { ledgers: 3, records: rawRecords.length },
+};
+
+const safetyRecords = employees.slice(0, 5).map((employee, index) => ({
+  id: `SAFE-${index + 1}`,
+  employeeKey: employee.employeeKey,
+  key: employee.employeeKey,
+  employeeName: employee.employeeName,
+  employeeNo: employee.employeeNo,
+  department: employee.department,
+  month: months[8 + index * 3].label,
+  year: months[8 + index * 3].year,
+  incidentType: "Mock safety incident",
+}));
+
+const safetyEmployees = safetyRecords.map((record, index) => ({
+  key: record.employeeKey,
+  employeeKey: record.employeeKey,
+  employeeName: record.employeeName,
+  employeeNo: record.employeeNo,
+  department: record.department,
+  incidentCount: index % 2 === 0 ? 2 : 1,
+  incidentMonths: [record.month, ...(index % 2 === 0 ? [months[Math.min(24, 12 + index)].label] : [])],
+}));
+
+function employeeDetail(employee) {
+  const rows = rawRecords.filter((row) => row.employeeKey === employee.employeeKey);
+  const employeeImprovements = improvementRecords.filter((row) => row.employeeKey === employee.employeeKey);
+  return {
+    source: "mock",
+    profile: employee,
+    comparisons: {
+      selectedMonth: "2026 Apr",
+      department: employee.department,
+      departmentEmployeeCount: employees.filter((row) => row.department === employee.department).length,
+      overallEmployeeCount: employees.length,
+      departmentAvgRepairEfficiency: round(average(employees.filter((row) => row.department === employee.department), "repairEfficiency"), 4),
+      overallAvgRepairEfficiency: round(average(employees, "repairEfficiency"), 4),
+      repairEfficiencyDelta: round(employee.repairEfficiency - 0.62, 4),
+      orderCountDelta: Math.round(employee.orderCount / rows.length - 70),
+      repairHoursDelta: round(employee.repairHours / rows.length - 60, 1),
+    },
+    monthlyTrends: rows,
+    records: rows,
+    improvementSummary: {
+      nearMissCount: sum(rows, "nearMissCount"),
+      nearMissBenefit: 0,
+      pdcaCount: sum(rows, "pdcaCount"),
+      pdcaBenefit: sum(rows, "pdcaBenefit"),
+      pdcaAwardCount: sum(rows, "pdcaAwardCount"),
+      kaizenCount: sum(rows, "kaizenCount"),
+      kaizenBenefit: sum(rows, "kaizenBenefit"),
+      kaizenAwardCount: sum(rows, "kaizenAwardCount"),
+    },
+    improvementTrend: rows.filter((row) => row.nearMissCount || row.pdcaCount || row.kaizenCount),
+    improvementRecords: employeeImprovements,
+    provenance: rows.map((row) => ({ id: row.id, month: row.month, employeeKey: row.employeeKey, employeeName: row.employeeName, validationStatus: "valid", provenance: row.provenance })),
+    dataQuality: { source: "mock", totalRecords: rows.length, validRecords: rows.length, quarantinedRecords: 0, criticalCount: 0 },
+  };
+}
+
+const employeeDetails = Object.fromEntries(employees.map((employee) => [employee.employeeKey, employeeDetail(employee)]));
+
+const snapshot = {
+  generatedAt: new Date("2026-06-24T00:00:00.000Z").toISOString(),
+  note: "Synthetic mock demo snapshot. No real business, employee, or source-system data is included.",
+  boss: {
+    summary,
+    trend,
+    topEmployees: employees.slice(0, 5),
+    attentionEmployees: employees.slice(-4).reverse(),
+    filterOptions,
+  },
+  admin: {
+    summary,
+    employees,
+    rawRecords,
+    quarantinedRecords: authenticityAnomalies,
+    filterOptions,
+  },
+  competence: {
+    certificateTypes,
+    employees: competenceEmployees,
+  },
+  repairTimeAnomalies: {
+    source: { type: "mock" },
+    summary: { totalRecords: repairTimeAnomalies.length },
+    records: repairTimeAnomalies,
+  },
+  safetyIncidents: {
+    source: { type: "mock" },
+    summary: { incidentEmployeeCount: safetyEmployees.length, incidentCount: safetyRecords.length },
+    employees: safetyEmployees,
+    records: safetyRecords,
+  },
+  dataAuthenticity: {
+    summary: {
+      source: "mock",
+      totalRecords: rawRecords.length,
+      validRecords: rawRecords.length,
+      quarantinedRecords: authenticityAnomalies.length,
+      criticalCount: authenticityAnomalies.filter((row) => row.severity === "critical").length,
+      totalAnomalies: authenticityAnomalies.length,
+      totalCriticalCount: authenticityAnomalies.filter((row) => row.severity === "critical").length,
+      filteredQuarantinedRecords: authenticityAnomalies.length,
+      batchStatus: "publishable",
+      policy: "Mock anomalies only; no real records included",
+    },
+    anomalies: authenticityAnomalies,
+    importBatches: [{ id: "MOCK-BATCH-001", status: "publishable", recordCount: rawRecords.length, validRecordCount: rawRecords.length, quarantinedRecordCount: authenticityAnomalies.length }],
+    sourceCoverage,
+    gapChecklist,
+  },
+  employeeDetails,
+};
+
+fs.mkdirSync(path.dirname(outFile), { recursive: true });
+fs.writeFileSync(outFile, `window.__BOSCH_STATIC_DEMO__ = ${JSON.stringify(snapshot, null, 2)};\n`);
+console.log(`Wrote ${outFile}`);
